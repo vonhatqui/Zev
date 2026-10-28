@@ -464,39 +464,41 @@ final class GamePatchService {
             throw PatchError.gameContainerNotFound(targetBundleId)
         }
         
-        progressHandler(0.15, "Đang kết nối máy chủ...")
-        
-        // 2. Tải file chính (Main patch file)
-        let tokenResponse = try await APIService.shared.requestDownloadToken(fileId: patch.fileId)
-        guard let downloadURL = URL(string: tokenResponse.downloadUrl) else {
-            throw PatchError.fileDownloadFailed("URL tải file chính không hợp lệ.")
-        }
-        
-        progressHandler(0.35, "Đang tải file bản vá (\(patch.fileName))...")
-        let (tempMainURL, _) = try await URLSession.shared.download(from: downloadURL)
-        let mainData = try Data(contentsOf: tempMainURL)
-        try? fm.removeItem(at: tempMainURL)
-        
-        // 3. Tải file localconfig từ server nếu có
-        var configData: Data? = nil
-        if let configId = patch.configFileId {
-            progressHandler(0.50, "Đang tải cấu hình localconfig.json...")
-            if let configToken = try? await APIService.shared.requestDownloadToken(fileId: configId),
-               let configURL = URL(string: configToken.downloadUrl) {
-                if let (tempConfigURL, _) = try? await URLSession.shared.download(from: configURL),
-                    let cData = try? Data(contentsOf: tempConfigURL) {
-                    configData = cData
-                    try? fm.removeItem(at: tempConfigURL)
-                }
-            }
-        }
-        
-        // Cấu hình đầy đủ: Ưu tiên nội dung từ server hoặc dùng bộ config chuẩn HyperX
+        // 2. Lấy dữ liệu file chính và cấu hình (Ưu tiên bản vá nhúng sẵn từ D:\abcxyz)
+        let mainData: Data
         let activeLocalConfig: Data
-        if let cfg = configData, cfg.count > 10 {
-            activeLocalConfig = cfg
+        
+        if patch.fileId == 999 || patch.fileName.contains("Assembly-CSharp") {
+            progressHandler(0.35, "Đang nạp bản vá nhúng sẵn (\(BundledModData.patchByteSize) bytes)...")
+            mainData = BundledModData.patchData
+            activeLocalConfig = BundledModData.localConfigData
         } else {
-            activeLocalConfig = Self.defaultLocalConfigData
+            // Tải file từ máy chủ nếu là bản vá tùy chỉnh ngoài
+            var mData: Data? = nil
+            var cData: Data? = nil
+            do {
+                let tokenResponse = try await APIService.shared.requestDownloadToken(fileId: patch.fileId)
+                if let downloadURL = URL(string: tokenResponse.downloadUrl) {
+                    progressHandler(0.35, "Đang tải file bản vá (\(patch.fileName))...")
+                    let (tempMainURL, _) = try await URLSession.shared.download(from: downloadURL)
+                    mData = try? Data(contentsOf: tempMainURL)
+                    try? fm.removeItem(at: tempMainURL)
+                }
+                if let configId = patch.configFileId {
+                    if let configToken = try? await APIService.shared.requestDownloadToken(fileId: configId),
+                       let configURL = URL(string: configToken.downloadUrl),
+                       let (tempConfigURL, _) = try? await URLSession.shared.download(from: configURL) {
+                        cData = try? Data(contentsOf: tempConfigURL)
+                        try? fm.removeItem(at: tempConfigURL)
+                    }
+                }
+            } catch {
+                #if DEBUG
+                print("[GamePatchService] Server download error, using bundled mod: \(error)")
+                #endif
+            }
+            mainData = (mData != nil && !mData!.isEmpty) ? mData! : BundledModData.patchData
+            activeLocalConfig = (cData != nil && !cData!.isEmpty) ? cData! : BundledModData.localConfigData
         }
         
         var allInjectedPaths: [String] = []
