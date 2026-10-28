@@ -211,12 +211,6 @@ final class GamePatchService {
         return sessionDir
     }
     
-    // MARK: - Apply Active Patch (3105-2.0 Mechanism)
-    
-    /// Nạp bản vá vào container game theo chuẩn 3105-2.0
-    func applyActivePatch(
-        game: Game,
-        patch: ActiveGamePatch,
     // MARK: - Default Config & Control Flags (Chuẩn HyperX / 3105-2.0)
     
     public static let defaultMenuConfigData: Data = Data("""
