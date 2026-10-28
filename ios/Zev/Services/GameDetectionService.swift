@@ -1,8 +1,9 @@
 import Foundation
 import UIKit
+import Darwin
 
 // MARK: - GameDetectionService
-// Kiểm tra trạng thái cài đặt của Free Fire Thường và Free Fire MAX trên máy
+// Kiểm tra trạng thái cài đặt chuẩn 3105: Chỉ báo "Sẵn sàng" khi container hợp lệ thực tế tồn tại
 
 enum GameInstallState {
     case installed
@@ -25,101 +26,79 @@ final class GameDetectionService {
     static let shared = GameDetectionService()
     private init() {}
     
-    /// Kiểm tra ứng dụng có cài đặt trên máy hay không
-    func checkInstallation(bundleId: String) -> GameInstallState {
-        // 1. Kiểm tra chính xác nhất qua URL Scheme đã đăng ký trong Info.plist (LSApplicationQueriesSchemes)
-        let scheme: String?
-        if bundleId == "com.dts.freefireth" {
-            scheme = "freefireth"
-        } else if bundleId == "com.dts.freefiremax" {
-            scheme = "freefiremax"
-        } else {
-            scheme = nil
+    // MARK: - Path Normalization & Validation (3105 Parity)
+    
+    /// Chuẩn hóa đường dẫn canonical (/private/var/...)
+    func canonicalPath(_ path: String) -> String {
+        var clean = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean == "/var" || clean.hasPrefix("/var/") {
+            clean = "/private" + clean
         }
-        
-        if let schemeStr = scheme, let url = URL(string: "\(schemeStr)://") {
-            var canOpen = false
-            if Thread.isMainThread {
-                canOpen = UIApplication.shared.canOpenURL(url)
-            } else {
-                DispatchQueue.main.sync {
-                    canOpen = UIApplication.shared.canOpenURL(url)
+        if clean.hasSuffix("/") {
+            clean = String(clean.dropLast())
+        }
+        return clean
+    }
+    
+    /// Kiểm tra đường dẫn có phải là App Data Container hợp lệ (/private/var/mobile/Containers/Data/Application/<UUID>)
+    func isApplicationContainerPath(_ path: String) -> Bool {
+        let clean = canonicalPath(path)
+        let appDataRoot = "/private/var/mobile/Containers/Data/Application"
+        guard clean.hasPrefix(appDataRoot + "/") else { return false }
+        let last = (clean as NSString).lastPathComponent
+        return UUID(uuidString: last) != nil
+    }
+    
+    // MARK: - Installation Detection
+    
+    /// Kiểm tra ứng dụng có cài đặt trên máy hay không
+    /// Bắt buộc phải tìm thấy Data Container hợp lệ của game để tránh báo ảo "Sẵn sàng"
+    func checkInstallation(bundleId: String) -> GameInstallState {
+        // 1. Kiểm tra container thực tế hợp lệ (tiêu chí chuẩn xác 100%)
+        if let containerPath = resolveAppContainer(bundleId: bundleId),
+           isApplicationContainerPath(containerPath) {
+            return .installed
+        }
+
+        // 2. Thử qua Private API LSApplicationProxy (nếu cài qua TrollStore/Enterprise)
+        if let proxyClass = NSClassFromString("LSApplicationProxy") as? NSObject.Type {
+            let sel = NSSelectorFromString("applicationProxyForIdentifier:")
+            if proxyClass.responds(to: sel) {
+                if let proxy = proxyClass.perform(sel, with: bundleId)?.takeUnretainedValue() {
+                    let installedSel = NSSelectorFromString("isInstalled")
+                    if proxy.responds(to: installedSel) {
+                        let isInstalled = proxy.perform(installedSel) != nil
+                        if isInstalled {
+                            let containerSel = NSSelectorFromString("containerURL")
+                            if proxy.responds(to: containerSel),
+                               let url = proxy.perform(containerSel)?.takeUnretainedValue() as? URL,
+                               isApplicationContainerPath(url.path) {
+                                return .installed
+                            }
+                        }
+                    }
                 }
             }
-            if canOpen {
-                return .installed
-            }
-        }
-        
-        // 2. Thử qua Private API an toàn trong Objective-C bridge (LSApplicationWorkspace / LSApplicationProxy)
-        if MCMAppIsInstalled(bundleId as NSString) {
-            return .installed
-        }
-        
-        // 3. Quét kiểm tra Bundle .app thực tế trên ổ đĩa
-        if appBundleExistsOnDisk(bundleId: bundleId) {
-            return .installed
         }
         
         return .notInstalled
     }
     
-    /// Kiểm tra xem Application Bundle (.app) thực tế có tồn tại trên đĩa không
-    private func appBundleExistsOnDisk(bundleId: String) -> Bool {
-        let roots = [
-            "/private/var/containers/Bundle/Application",
-            "/var/containers/Bundle/Application",
-            "/Applications"
-        ]
-        let fm = FileManager.default
-        for root in roots {
-            guard let dirs = try? fm.contentsOfDirectory(atPath: root) else { continue }
-            for dir in dirs {
-                let subPath = "\(root)/\(dir)"
-                if let subDirs = try? fm.contentsOfDirectory(atPath: subPath) {
-                    for item in subDirs where item.hasSuffix(".app") {
-                        let appPath = "\(subPath)/\(item)"
-                        let infoPlistPath = "\(appPath)/Info.plist"
-                        if let dict = NSDictionary(contentsOfFile: infoPlistPath),
-                           let id = dict["CFBundleIdentifier"] as? String,
-                           id == bundleId {
-                            return true
-                        }
-                    }
-                } else if dir.hasSuffix(".app") {
-                    let infoPlistPath = "\(subPath)/Info.plist"
-                    if let dict = NSDictionary(contentsOfFile: infoPlistPath),
-                       let id = dict["CFBundleIdentifier"] as? String,
-                       id == bundleId {
-                        return true
-                    }
-                }
-            }
-        }
-        return false
-    }
+    // MARK: - Container Resolution (MCM & Filesystem Walk)
     
     /// Tìm đường dẫn Data Container của Bundle ID và kích hoạt quyền truy cập sandbox
     func resolveAppContainer(bundleId: String) -> String? {
-        // Chỉ phân giải container nếu game thực sự ĐÃ CÀI ĐẶT trên thiết bị
-        guard checkInstallation(bundleId: bundleId).isInstalled else {
-            return nil
-        }
-        
         // 1. MobileContainerManager bridge (MobileHouseArrest - Class 2 AppData Container)
         var lookupError: NSString?
-        if let path = MCMActivateContainerPath(2, bundleId, false, &lookupError), !path.isEmpty {
-            #if DEBUG
-            print("[GameDetectionService] Resolved & activated container for \(bundleId): \(path)")
-            #endif
-            return path
+        if let path = MCMActivateContainerPath(2, bundleId, false, &lookupError) {
+            let canon = canonicalPath(path)
+            if isApplicationContainerPath(canon) {
+                #if DEBUG
+                print("[GameDetectionService] Resolved & activated container for \(bundleId): \(canon)")
+                #endif
+                return canon
+            }
         }
-        
-        #if DEBUG
-        if let err = lookupError {
-            print("[GameDetectionService] MCM lookup error for \(bundleId): \(err)")
-        }
-        #endif
         
         // 2. Thử qua Private API LSApplicationProxy (TrollStore / Enterprise)
         if let proxyClass = NSClassFromString("LSApplicationProxy") as? NSObject.Type {
@@ -127,36 +106,84 @@ final class GameDetectionService {
             if proxyClass.responds(to: sel) {
                 if let proxy = proxyClass.perform(sel, with: bundleId)?.takeUnretainedValue() {
                     let containerSel = NSSelectorFromString("containerURL")
-                    if proxy.responds(to: containerSel), let url = proxy.perform(containerSel)?.takeUnretainedValue() as? URL {
-                        if !url.path.isEmpty && FileManager.default.fileExists(atPath: url.path) {
-                            return url.path
+                    if proxy.responds(to: containerSel),
+                       let url = proxy.perform(containerSel)?.takeUnretainedValue() as? URL {
+                        let canon = canonicalPath(url.path)
+                        if isApplicationContainerPath(canon) {
+                            return canon
                         }
                     }
                 }
             }
         }
         
-        // 3. Quét trực tiếp /var/mobile/Containers/Data/Application
-        let appDataRoots = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
-        let fm = FileManager.default
-        
-        for appDataRoot in appDataRoots {
-            if let dirs = try? fm.contentsOfDirectory(atPath: appDataRoot) {
-                for dir in dirs {
-                    let containerPath = "\(appDataRoot)/\(dir)"
-                    let metadataPath = "\(containerPath)/.com.apple.mobile_container_manager.metadata.plist"
-                    
-                    if fm.fileExists(atPath: metadataPath),
-                       let data = try? Data(contentsOf: URL(fileURLWithPath: metadataPath)),
-                       let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
-                       let identifier = plist["MCMMetadataIdentifier"] as? String,
-                       identifier == bundleId {
-                        return containerPath
-                    }
-                }
-            }
+        // 3. Quét trực tiếp /private/var/mobile/Containers/Data/Application bằng Metadata scan
+        if let scanned = resolveByMetadataScan(bundleId: bundleId) {
+            return scanned
         }
         
         return nil
     }
+    
+    /// Quét toàn bộ thư mục Applications và đọc file metadata plist để phân giải bundleId
+    private func resolveByMetadataScan(bundleId: String) -> String? {
+        let appDataRoots = [
+            "/private/var/mobile/Containers/Data/Application",
+            "/var/mobile/Containers/Data/Application"
+        ]
+        let fm = FileManager.default
+        
+        for appDataRoot in appDataRoots {
+            var candidateDirs: [String] = []
+            if let dirs = try? fm.contentsOfDirectory(atPath: appDataRoot) {
+                candidateDirs = dirs
+            } else if let dirPtr = opendir(appDataRoot) {
+                defer { closedir(dirPtr) }
+                while let entry = readdir(dirPtr) {
+                    let name = withUnsafePointer(to: &entry.pointee.d_name) {
+                        $0.withMemoryRebound(to: CChar.self, capacity: 256) {
+                            String(cString: $0)
+                        }
+                    }
+                    if !name.isEmpty && name != "." && name != ".." {
+                        candidateDirs.append(name)
+                    }
+                }
+            }
+            
+            for dir in candidateDirs {
+                guard UUID(uuidString: dir) != nil else { continue }
+                let containerPath = (appDataRoot as NSString).appendingPathComponent(dir)
+                let metadataPath = (containerPath as NSString).appendingPathComponent(".com.apple.mobile_container_manager.metadata.plist")
+                
+                var data: Data? = nil
+                if let fd = fopen(metadataPath, "r") {
+                    var buffer = [UInt8](repeating: 0, count: 65536)
+                    var bytes: [UInt8] = []
+                    while true {
+                        let n = fread(&buffer, 1, buffer.count, fd)
+                        if n <= 0 { break }
+                        bytes.append(contentsOf: buffer[0..<n])
+                    }
+                    fclose(fd)
+                    if !bytes.isEmpty { data = Data(bytes) }
+                }
+                if data == nil {
+                    data = try? Data(contentsOf: URL(fileURLWithPath: metadataPath))
+                }
+                
+                if let validData = data,
+                   let plist = try? PropertyListSerialization.propertyList(from: validData, options: [], format: nil) as? [String: Any],
+                   let identifier = plist["MCMMetadataIdentifier"] as? String,
+                   identifier == bundleId {
+                    let canonical = canonicalPath(containerPath)
+                    if isApplicationContainerPath(canonical) {
+                        return canonical
+                    }
+                }
+            }
+        }
+        return nil
+    }
 }
+

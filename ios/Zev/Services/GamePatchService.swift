@@ -217,22 +217,189 @@ final class GamePatchService {
     func applyActivePatch(
         game: Game,
         patch: ActiveGamePatch,
+    // MARK: - Default Config & Control Flags (Chuẩn HyperX / 3105-2.0)
+    
+    public static let defaultMenuConfigData: Data = Data("""
+    {
+      "box_esp": true,
+      "line_esp": true,
+      "health_bar": true,
+      "name_tag": true,
+      "distance_tag": true,
+      "aim_silent": true,
+      "aim_bot": true,
+      "no_recoil": false,
+      "aim_fov": 120.0,
+      "headshot_rate": 80,
+      "color": 1,
+      "aim_target": 0,
+      "buff_damage": false,
+      "fast_fire": false,
+      "wide_view": true,
+      "cam_distance": 1.4,
+      "speed_run": 1.0,
+      "box_r": 255,
+      "box_g": 0,
+      "box_b": 0,
+      "line_r": 0,
+      "line_g": 255,
+      "line_b": 0,
+      "draw_fov": true,
+      "box_thickness": 1.5,
+      "line_thickness": 1.0,
+      "box_color": "#FF0000",
+      "line_color": "#00FF00",
+      "target_line": true,
+      "testCodePatch": true,
+      "resetGuest": true,
+      "data": {
+        "box_esp": true,
+        "line_esp": true,
+        "health_bar": true,
+        "name_tag": true,
+        "distance_tag": true,
+        "aim_silent": true,
+        "aim_bot": true,
+        "no_recoil": false,
+        "aim_fov": 120.0,
+        "headshot_rate": 80,
+        "color": 1,
+        "aim_target": 0,
+        "buff_damage": false,
+        "fast_fire": false,
+        "wide_view": true,
+        "cam_distance": 1.4,
+        "speed_run": 1.0,
+        "box_r": 255,
+        "box_g": 0,
+        "box_b": 0,
+        "line_r": 0,
+        "line_g": 255,
+        "line_b": 0,
+        "draw_fov": true,
+        "box_thickness": 1.5,
+        "line_thickness": 1.0,
+        "box_color": "#FF0000",
+        "line_color": "#00FF00",
+        "target_line": true
+      }
+    }
+    """.utf8)
+
+    public static let defaultLocalConfigData: Data = Data("""
+    {
+      "server_esp": true,
+      "server_aim": true,
+      "server_health": true,
+      "server_name": true,
+      "server_box": true,
+      "server_line": true,
+      "server_skeleton": true,
+      "server_distance": true,
+      "server_headshot": true,
+      "system_active": true,
+      "AimEnabled": true,
+      "AimSystemEnabled": true,
+      "AimTarget": 0,
+      "HeadshotRate": 80,
+      "FovSize": 120,
+      "EspMaster": true,
+      "EspBox": true,
+      "EspLine": true,
+      "EspName": true,
+      "EspHealth": true,
+      "EspDistance": true,
+      "EspFov": true,
+      "EspSkeleton": true,
+      "EspTracer": false,
+      "NoRecoil": false,
+      "FastParachute": false,
+      "CamXa": true,
+      "CamXaFloat": 1.4,
+      "GhostMode": false,
+      "SpeedHack": 1,
+      "BuffDame": false,
+      "ShowGuestBtn": true,
+      "resetGuest": true,
+      "reset_guest": true,
+      "resetGuestBeforeLogin": false,
+      "testCodePatch": true,
+      "box_esp": true,
+      "line_esp": true,
+      "health_bar": true,
+      "name_tag": true,
+      "distance_tag": true,
+      "aim_silent": true,
+      "aim_bot": true,
+      "no_recoil": false,
+      "aim_fov": 120.0,
+      "headshot_rate": 80,
+      "color": 1,
+      "aim_target": 0,
+      "buff_damage": false,
+      "fast_fire": false,
+      "wide_view": true,
+      "cam_distance": 1.4,
+      "speed_run": 1.0,
+      "draw_fov": true,
+      "box_thickness": 1.5,
+      "line_thickness": 1.0,
+      "target_line": true
+    }
+    """.utf8)
+
+    // Neutral IFix Bridge Seed (322 bytes) để game không bị crash khi gỡ bản vá
+    private static let neutralIFixBridgeSeed: Data = Data([
+        0xcb, 0xa2, 0xb4, 0x0d, 0xb2, 0x19, 0xa3, 0x66, 0x64, 0x49, 0x46, 0x69, 0x78, 0x2e, 0x49, 0x4c,
+        0x46, 0x69, 0x78, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x66, 0x61, 0x63, 0x65, 0x42, 0x72, 0x69, 0x64,
+        0x67, 0x65, 0x2c, 0x20, 0x41, 0x73, 0x73, 0x65, 0x6d, 0x62, 0x6c, 0x79, 0x2d, 0x43, 0x53, 0x68,
+        0x61, 0x72, 0x70, 0x2c, 0x20, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x3d, 0x30, 0x2e, 0x38,
+        0x36, 0x2e, 0x30, 0x2e, 0x35, 0x31, 0x38, 0x2c, 0x20, 0x43, 0x75, 0x6c, 0x74, 0x75, 0x72, 0x65,
+        0x3d, 0x6e, 0x65, 0x75, 0x74, 0x72, 0x61, 0x6c, 0x2c, 0x20, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63,
+        0x4b, 0x65, 0x79, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x3d, 0x6e, 0x75, 0x6c, 0x6c, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x63, 0x49, 0x46, 0x69, 0x78, 0x2e, 0x57,
+        0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x73, 0x4d, 0x61, 0x6e, 0x61, 0x67, 0x65, 0x72, 0x49, 0x6d,
+        0x70, 0x6c, 0x2c, 0x20, 0x41, 0x73, 0x73, 0x65, 0x6d, 0x62, 0x6c, 0x78, 0x2d, 0x43, 0x53, 0x68,
+        0x61, 0x72, 0x70, 0x2c, 0x20, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x3d, 0x30, 0x2e, 0x38,
+        0x36, 0x2e, 0x30, 0x2e, 0x35, 0x31, 0x38, 0x2c, 0x20, 0x43, 0x75, 0x6c, 0x74, 0x75, 0x72, 0x65,
+        0x3d, 0x6e, 0x65, 0x75, 0x74, 0x72, 0x61, 0x6c, 0x2c, 0x20, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63,
+        0x4b, 0x65, 0x79, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x3d, 0x6e, 0x75, 0x6c, 0x6c, 0x4b, 0x2c, 0x20,
+        0x41, 0x73, 0x73, 0x65, 0x6d, 0x62, 0x6c, 0x79, 0x2d, 0x43, 0x53, 0x68, 0x61, 0x72, 0x70, 0x2c,
+        0x20, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x3d, 0x30, 0x2e, 0x38, 0x36, 0x2e, 0x30, 0x2e,
+        0x35, 0x31, 0x38, 0x2c, 0x20, 0x43, 0x75, 0x6c, 0x74, 0x75, 0x72, 0x65, 0x3d, 0x6e, 0x65, 0x75,
+        0x74, 0x72, 0x61, 0x6c, 0x2c, 0x20, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x4b, 0x65, 0x79, 0x54,
+        0x6f, 0x6b, 0x65, 0x6e, 0x3d, 0x6e, 0x75, 0x6c, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00
+    ])
+    
+    // MARK: - Apply Active Patch (3105-2.0 Mechanism)
+    
+    /// Nạp bản vá vào container game theo chuẩn 3105-2.0
+    func applyActivePatch(
+        game: Game,
+        patch: ActiveGamePatch,
         progressHandler: @escaping (Double, String) -> Void
     ) async throws {
         let targetBundleId = game.bundleId
         
-        // 1. Tìm tất cả container Free Fire có sẵn trên thiết bị (Thường & MAX)
+        // 1. Tìm container thực tế của game được chọn (CHỈ chấp nhận container hợp lệ)
         var targetContainers: [(bundleId: String, rootURL: URL)] = []
         
-        if let primaryPath = GameDetectionService.shared.resolveAppContainer(bundleId: targetBundleId) {
-            targetContainers.append((targetBundleId, PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: primaryPath))))
+        if let primaryPath = GameDetectionService.shared.resolveAppContainer(bundleId: targetBundleId),
+           GameDetectionService.shared.isApplicationContainerPath(primaryPath) {
+            targetContainers.append((targetBundleId, URL(fileURLWithPath: primaryPath)))
         }
         
-        // Tự động kiểm tra thêm bản Free Fire khác (nếu máy cài cả 2 bản hoặc người dùng chọn nhầm tab)
+        // Chỉ quét thêm bản Free Fire khác NẾU bản đó thực sự có container hợp lệ trên máy
         let alternateBundleId = (targetBundleId == "com.dts.freefireth") ? "com.dts.freefiremax" : "com.dts.freefireth"
-        if let altPath = GameDetectionService.shared.resolveAppContainer(bundleId: alternateBundleId) {
-            targetContainers.append((alternateBundleId, PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: altPath))))
+        if let altPath = GameDetectionService.shared.resolveAppContainer(bundleId: alternateBundleId),
+           GameDetectionService.shared.isApplicationContainerPath(altPath) {
+            targetContainers.append((alternateBundleId, URL(fileURLWithPath: altPath)))
         }
+        
+        // Loại bỏ mọi đường dẫn không hợp lệ hoặc trỏ nhầm /var/mobile
+        targetContainers.removeAll { !GameDetectionService.shared.isApplicationContainerPath($0.rootURL.path) }
         
         guard !targetContainers.isEmpty else {
             throw PatchError.gameContainerNotFound(targetBundleId)
@@ -251,7 +418,7 @@ final class GamePatchService {
         let mainData = try Data(contentsOf: tempMainURL)
         try? fm.removeItem(at: tempMainURL)
         
-        // 3. Tải file localconfig nếu có
+        // 3. Tải file localconfig từ server nếu có
         var configData: Data? = nil
         if let configId = patch.configFileId {
             progressHandler(0.50, "Đang tải cấu hình localconfig.json...")
@@ -265,9 +432,12 @@ final class GamePatchService {
             }
         }
         
-        // Nếu không có file config tải lên, tự động tạo config kích hoạt chuẩn IFix
-        if configData == nil {
-            configData = "{\"testCodePatch\":true,\"system_active\":true}".data(using: .utf8)
+        // Cấu hình đầy đủ: Ưu tiên nội dung từ server hoặc dùng bộ config chuẩn HyperX
+        let activeLocalConfig: Data
+        if let cfg = configData, cfg.count > 10 {
+            activeLocalConfig = cfg
+        } else {
+            activeLocalConfig = Self.defaultLocalConfigData
         }
         
         var allInjectedPaths: [String] = []
@@ -278,7 +448,8 @@ final class GamePatchService {
         
         // 4. Áp dụng cho từng container game tìm thấy
         for (bId, containerRootURL) in targetContainers {
-            progressHandler(0.65, "Đang nạp dữ liệu vào \(bId.contains("max") ? "FF MAX" : "FF Thường")...")
+            let gameDisplayName = bId.contains("max") ? "FF MAX" : "FF Thường"
+            progressHandler(0.65, "Đang nạp dữ liệu vào \(gameDisplayName)...")
             
             // Xử lý gói .3105 chuyên dụng
             if PatchPackageCodec.is3105Package(data: mainData) {
@@ -286,8 +457,9 @@ final class GamePatchService {
                 
                 for dir in decoded.project.directories {
                     let dirBundle = dir.bundleID.isEmpty ? bId : dir.bundleID
-                    if let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: dirBundle) {
-                        let cRoot = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: cPath))
+                    if let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: dirBundle),
+                       GameDetectionService.shared.isApplicationContainerPath(cPath) {
+                        let cRoot = URL(fileURLWithPath: cPath)
                         if let dirURL = try? PatchPathValidator.resolveContainedTargetURL(relativePath: dir.relativePath, containerRoot: cRoot) {
                             if !fm.fileExists(atPath: dirURL.path) {
                                 try? fm.createDirectory(at: dirURL, withIntermediateDirectories: true)
@@ -299,8 +471,9 @@ final class GamePatchService {
                 
                 for rule in decoded.project.rules {
                     let ruleBundle = rule.bundleID.isEmpty ? bId : rule.bundleID
-                    guard let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: ruleBundle) else { continue }
-                    let cRoot = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: cPath))
+                    guard let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: ruleBundle),
+                          GameDetectionService.shared.isApplicationContainerPath(cPath) else { continue }
+                    let cRoot = URL(fileURLWithPath: cPath)
                     let targetURL = try PatchPathValidator.resolveContainedTargetURL(relativePath: rule.relativePath, containerRoot: cRoot)
                     
                     if fm.fileExists(atPath: targetURL.path) {
@@ -313,19 +486,15 @@ final class GamePatchService {
                     allInjectedPaths.append(targetURL.path)
                 }
             } else {
-                // Xử lý file thường (.bytes, Assembly, .dll, v.v.)
-                // Tạo các biến thể tên gọi phổ biến của IFix để game luôn nhận diện
+                // Xử lý file thường (.bytes, Assembly, v.v.)
+                let targetFolders = ["Documents", "Documents/cached"]
+                
                 var fileNames: Set<String> = [patch.fileName]
                 if patch.fileName.contains("-patch.bytes") {
                     fileNames.insert(patch.fileName.replacingOccurrences(of: "-patch.bytes", with: ".patch.bytes"))
-                    fileNames.insert(patch.fileName.replacingOccurrences(of: "-patch.bytes", with: ".bytes"))
                 } else if patch.fileName.contains(".patch.bytes") {
                     fileNames.insert(patch.fileName.replacingOccurrences(of: ".patch.bytes", with: "-patch.bytes"))
-                    fileNames.insert(patch.fileName.replacingOccurrences(of: ".patch.bytes", with: ".bytes"))
                 }
-                
-                // Các thư mục đích mà Free Fire thường đọc hotfix
-                let targetFolders = ["Documents", "Documents/cached", "Documents/patch"]
                 
                 for folderRel in targetFolders {
                     let destFolder = containerRootURL.appendingPathComponent(folderRel, isDirectory: true)
@@ -334,7 +503,7 @@ final class GamePatchService {
                         allCreatedDirectories.append(destFolder.path)
                     }
                     
-                    // Ghi tất cả biến thể tên file bản vá
+                    // Ghi file bản vá chính
                     for fname in fileNames {
                         let targetURL = destFolder.appendingPathComponent(fname)
                         if fm.fileExists(atPath: targetURL.path) {
@@ -347,21 +516,40 @@ final class GamePatchService {
                         allInjectedPaths.append(targetURL.path)
                     }
                     
-                    // Ghi cả localconfig.json và localConfig.json vào thư mục
-                    if let cfgData = configData {
-                        let configNames = ["localconfig.json", "localConfig.json"]
-                        for cfgName in configNames {
-                            let cfgTargetURL = destFolder.appendingPathComponent(cfgName)
-                            if fm.fileExists(atPath: cfgTargetURL.path) {
-                                let backupFile = backupDir.appendingPathComponent("cfg_\(UUID().uuidString).orig")
-                                try? fm.copyItem(at: cfgTargetURL, to: backupFile)
-                                allBackupMap[cfgTargetURL.path] = backupFile.path
-                            }
-                            
-                            try atomicWrite(cfgData, to: cfgTargetURL, preservingExistingAttributes: true)
-                            allInjectedPaths.append(cfgTargetURL.path)
+                    // Ghi đồng bộ localconfig.json và localConfig.json
+                    let configNames = ["localconfig.json", "localConfig.json"]
+                    for cfgName in configNames {
+                        let cfgTargetURL = destFolder.appendingPathComponent(cfgName)
+                        if fm.fileExists(atPath: cfgTargetURL.path) {
+                            let backupFile = backupDir.appendingPathComponent("cfg_\(UUID().uuidString).orig")
+                            try? fm.copyItem(at: cfgTargetURL, to: backupFile)
+                            allBackupMap[cfgTargetURL.path] = backupFile.path
                         }
+                        
+                        try atomicWrite(activeLocalConfig, to: cfgTargetURL, preservingExistingAttributes: true)
+                        allInjectedPaths.append(cfgTargetURL.path)
                     }
+                    
+                    // Ghi menu_config.json chuẩn HyperX
+                    let menuConfigURL = destFolder.appendingPathComponent("menu_config.json")
+                    if fm.fileExists(atPath: menuConfigURL.path) {
+                        let backupFile = backupDir.appendingPathComponent("menu_\(UUID().uuidString).orig")
+                        try? fm.copyItem(at: menuConfigURL, to: backupFile)
+                        allBackupMap[menuConfigURL.path] = backupFile.path
+                    }
+                    try atomicWrite(Self.defaultMenuConfigData, to: menuConfigURL, preservingExistingAttributes: true)
+                    allInjectedPaths.append(menuConfigURL.path)
+                }
+                
+                // Ghi 2 cờ điều khiển kích hoạt Antiban & Nút Menu (chuẩn HyperX)
+                let docDir = containerRootURL.appendingPathComponent("Documents", isDirectory: true)
+                let flag1 = docDir.appendingPathComponent("antiban_btn_show.flag")
+                let flag2 = docDir.appendingPathComponent("antiban_active.flag")
+                if let flagData = "1".data(using: .utf8) {
+                    try? atomicWrite(flagData, to: flag1, preservingExistingAttributes: false)
+                    try? atomicWrite(flagData, to: flag2, preservingExistingAttributes: false)
+                    allInjectedPaths.append(flag1.path)
+                    allInjectedPaths.append(flag2.path)
                 }
             }
         }
@@ -377,7 +565,7 @@ final class GamePatchService {
         )
         saveInjectionRecord(record)
         
-        progressHandler(1.0, "Đã nạp thành công vào cả Free Fire & Free Fire MAX!")
+        progressHandler(1.0, "Đã nạp thành công bản vá vào game!")
     }
     
     // MARK: - Uninjector (Xóa Sạch Không Còn Dấu Vết)
@@ -402,10 +590,15 @@ final class GamePatchService {
                 try? atomicCopy(backupURL, to: targetURL)
                 processedCount += 1
             } else {
-                // Không có file gốc -> Xóa bỏ hoàn toàn
-                if fm.fileExists(atPath: filePath) {
-                    try? fm.removeItem(at: targetURL)
+                // Không có file gốc -> Nếu là file Assembly-CSharp-patch.bytes thì ghi seed trung tính để chống crash
+                if filePath.hasSuffix("Assembly-CSharp-patch.bytes") {
+                    try? atomicWrite(Self.neutralIFixBridgeSeed, to: targetURL, preservingExistingAttributes: true)
                     processedCount += 1
+                } else {
+                    if fm.fileExists(atPath: filePath) {
+                        try? fm.removeItem(at: targetURL)
+                        processedCount += 1
+                    }
                 }
             }
         }
