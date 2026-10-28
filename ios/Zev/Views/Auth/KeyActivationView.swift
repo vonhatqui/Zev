@@ -37,38 +37,32 @@ struct KeyActivationView: View {
                 VStack(spacing: 24) {
                     
                     // MARK: - Top App Logo & Branding
-                    VStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(ZevTheme.Colors.surface2)
-                                .frame(width: 86, height: 86)
-                                .overlay(
-                                    Circle()
-                                        .stroke(ZevTheme.Gradients.primary, lineWidth: 1.5)
-                                )
-                                .shadow(color: ZevTheme.Colors.primary.opacity(0.35), radius: 18, x: 0, y: 6)
-                            
-                            AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 58, height: 58)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                default:
-                                    Image(systemName: "key.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundStyle(ZevTheme.Gradients.primary)
-                                }
+                    VStack(spacing: 14) {
+                        // Logo sạch sẽ, loại bỏ hoàn toàn viền tím
+                        AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+                            default:
+                                Image(systemName: "key.fill")
+                                    .font(.system(size: 38))
+                                    .foregroundColor(ZevTheme.Colors.primary)
                             }
                         }
                         
-                        VStack(spacing: 4) {
-                            Text("ZEV LOGIN")
-                                .font(ZevTheme.Typography.title(22))
-                                .foregroundStyle(ZevTheme.Gradients.primary)
-                                .tracking(1.5)
+                        VStack(spacing: 6) {
+                            HStack(spacing: 8) {
+                                RainbowLEDText(text: "ZEV", fontSize: 28)
+                                Text("LOGIN")
+                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .foregroundColor(ZevTheme.Colors.text)
+                                    .tracking(1.5)
+                            }
                             
                             Text("Nhập mã key để đăng nhập và mở khóa tính năng")
                                 .font(ZevTheme.Typography.body(13))

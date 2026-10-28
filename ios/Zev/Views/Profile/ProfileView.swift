@@ -24,9 +24,12 @@ struct ProfileView: View {
                     // Top Header
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Cá Nhân & Hỗ Trợ")
-                                .font(ZevTheme.Typography.title(22))
-                                .foregroundColor(ZevTheme.Colors.text)
+                            HStack(spacing: 8) {
+                                RainbowLEDText(text: "ZEV", fontSize: 22)
+                                Text("Cá Nhân & Hỗ Trợ")
+                                    .font(ZevTheme.Typography.title(20))
+                                    .foregroundColor(ZevTheme.Colors.text)
+                            }
                             Text("Quản lý bản quyền, liên hệ và trạng thái hệ thống")
                                 .font(ZevTheme.Typography.caption(12))
                                 .foregroundColor(ZevTheme.Colors.textMuted)

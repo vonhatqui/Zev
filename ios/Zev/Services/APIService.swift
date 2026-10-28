@@ -28,12 +28,29 @@ enum APIError: LocalizedError {
 
 // MARK: - APIService
 
+// MARK: - SSL Bypass Delegate (Hỗ trợ chứng chỉ cPanel tự ký / đang cấp)
+final class SSLBypassDelegate: NSObject, URLSessionDelegate {
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let serverTrust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: serverTrust))
+            return
+        }
+        completionHandler(.performDefaultHandling, nil)
+    }
+}
+
 final class APIService {
     
     static let shared = APIService()
     
     private let session: URLSession
     private let decoder: JSONDecoder
+    private let sessionDelegate = SSLBypassDelegate()
     
     private init() {
         let config = URLSessionConfiguration.default
@@ -44,7 +61,7 @@ final class APIService {
             "Content-Type":  "application/json",
             "Accept":        "application/json",
         ]
-        self.session = URLSession(configuration: config)
+        self.session = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
         self.decoder = JSONDecoder()
     }
     

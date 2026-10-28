@@ -26,20 +26,16 @@ struct ZevCard<Content: View>: View {
             .padding(padding)
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(ZevTheme.Colors.surface.opacity(0.85))
-                    .background(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(ZevTheme.Gradients.card)
-                    )
+                    .fill(ZevTheme.Colors.surface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(
-                        borderGlow ? ZevTheme.Colors.primary.opacity(0.4) : ZevTheme.Colors.border.opacity(0.6),
+                        borderGlow ? ZevTheme.Colors.primary.opacity(0.35) : ZevTheme.Colors.border,
                         lineWidth: 1
                     )
             )
-            .shadow(color: borderGlow ? ZevTheme.Shadow.glow : Color.black.opacity(0.35), radius: borderGlow ? 12 : 8, x: 0, y: 4)
+            .shadow(color: borderGlow ? ZevTheme.Shadow.glow : Color.black.opacity(0.05), radius: borderGlow ? 10 : 6, x: 0, y: 3)
     }
 }
 
@@ -85,7 +81,7 @@ struct ZevButton: View {
             .frame(height: 50)
             .padding(.horizontal, 20)
             .background(buttonBackground)
-            .foregroundColor(.white)
+            .foregroundColor(buttonForegroundColor)
             .cornerRadius(ZevTheme.Radius.md)
             .overlay(buttonBorder)
             .shadow(color: shadowColor, radius: 8, x: 0, y: 4)
@@ -127,6 +123,13 @@ struct ZevButton: View {
         case .primary: return ZevTheme.Colors.primary.opacity(0.35)
         case .danger:  return ZevTheme.Colors.danger.opacity(0.3)
         default:       return Color.clear
+        }
+    }
+
+    private var buttonForegroundColor: Color {
+        switch style {
+        case .primary, .danger: return .white
+        case .secondary, .outline: return ZevTheme.Colors.text
         }
     }
 }

@@ -55,26 +55,17 @@ struct GameSelectionView: View {
                     
                     // MARK: - Header
                     VStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(ZevTheme.Colors.surface2)
-                                .frame(width: 80, height: 80)
-                                .overlay(
-                                    Circle()
-                                        .stroke(ZevTheme.Gradients.primary, lineWidth: 1.5)
-                                )
-                                .shadow(color: ZevTheme.Colors.primary.opacity(0.3), radius: 16, x: 0, y: 4)
-                            
-                            AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
-                                switch phase {
-                                case .success(let img):
-                                    img.resizable().aspectRatio(contentMode: .fit).frame(width: 52, height: 52)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                default:
-                                    Image(systemName: "gamecontroller.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundStyle(ZevTheme.Gradients.primary)
-                                }
+                        // Logo không viền tím
+                        AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
+                            switch phase {
+                            case .success(let img):
+                                img.resizable().aspectRatio(contentMode: .fit).frame(width: 76, height: 76)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+                            default:
+                                Image(systemName: "gamecontroller.fill")
+                                    .font(.system(size: 38))
+                                    .foregroundColor(ZevTheme.Colors.primary)
                             }
                         }
                         

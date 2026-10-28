@@ -1,0 +1,40 @@
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Chuyển hướng trang chủ / sang /admin/
+    RewriteRule ^$ admin/ [R=302,L]
+
+    # Điều hướng toàn bộ request /api/... sang public/index.php
+    RewriteRule ^api/(.*)$ public/index.php [QSA,L]
+
+    # Bảo vệ các thư mục bảo mật không cho client tải trực tiếp
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^src/ - [F,L]
+    RewriteRule ^database/ - [F,L]
+</IfModule>
+
+# Bảo vệ các file đuôi nhạy cảm
+<FilesMatch "\.(env|log|sql|sqlite|json|lock|md|sh|bash)$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
+
+# Cấu hình bảo mật HTTP Headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Cấu hình PHP nếu server hỗ trợ qua .htaccess
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_value upload_max_filesize 100M
+    php_value post_max_size 105M
+    php_value max_execution_time 300
+    php_value memory_limit 256M
+</IfModule>

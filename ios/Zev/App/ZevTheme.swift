@@ -7,27 +7,29 @@ enum ZevTheme {
     
     // ─── Colors ─────────────────────────────────────────────────────────────
     enum Colors {
-        static let background       = Color(hex: "#0A0B0F")
-        static let surface          = Color(hex: "#111218")
-        static let surface2         = Color(hex: "#1A1C26")
-        static let surface3         = Color(hex: "#22253A")
-        static let border           = Color(hex: "#2A2D3E")
+        // Ưu tiên nền trắng sáng, thanh thoát và sạch sẽ
+        static let background       = Color(hex: "#F8FAFC") // Trắng ngà sang trọng
+        static let surface          = Color(hex: "#FFFFFF") // Trắng thuần khiết cho Card
+        static let surface2         = Color(hex: "#F1F5F9") // Ô nhập dữ liệu, container phụ
+        static let surface3         = Color(hex: "#E2E8F0") // Hover / Divider
+        static let border           = Color(hex: "#E2E8F0") // Viền mỏng cao cấp
         
-        static let primary          = Color(hex: "#6C63FF")
-        static let primaryDim       = Color(hex: "#4F48C4")
-        static let primaryGlow      = Color(hex: "#6C63FF").opacity(0.25)
+        static let primary          = Color(hex: "#4F46E5") // Indigo sắc nét
+        static let primaryDim       = Color(hex: "#4338CA")
+        static let primaryGlow      = Color(hex: "#4F46E5").opacity(0.12)
         
-        static let success          = Color(hex: "#22C55E")
-        static let warning          = Color(hex: "#F59E0B")
-        static let danger           = Color(hex: "#EF4444")
-        static let info             = Color(hex: "#3B82F6")
+        static let success          = Color(hex: "#16A34A") // Xanh lá đậm chuẩn Apple
+        static let warning          = Color(hex: "#D97706") // Vàng cam
+        static let danger           = Color(hex: "#DC2626") // Đỏ
+        static let info             = Color(hex: "#2563EB") // Xanh dương
         
-        static let text             = Color(hex: "#E4E6F0")
-        static let textMuted        = Color(hex: "#8B91A8")
-        static let textDim          = Color(hex: "#55596E")
+        // Chữ đen rõ nét, độ tương phản tuyệt đối trên nền trắng
+        static let text             = Color(hex: "#0F172A") // Đen đậm nét
+        static let textMuted        = Color(hex: "#475569") // Xám đen tinh tế
+        static let textDim          = Color(hex: "#64748B") // Xám nhạt
         
-        static let gradientStart    = Color(hex: "#6C63FF")
-        static let gradientEnd      = Color(hex: "#A78BFA")
+        static let gradientStart    = Color(hex: "#4F46E5")
+        static let gradientEnd      = Color(hex: "#7C3AED")
     }
     
     // ─── Gradients ──────────────────────────────────────────────────────────
@@ -39,13 +41,13 @@ enum ZevTheme {
         )
         
         static let background = LinearGradient(
-            colors: [Colors.background, Color(hex: "#0D0E16")],
+            colors: [Color(hex: "#FFFFFF"), Color(hex: "#F8FAFC")],
             startPoint: .top,
             endPoint: .bottom
         )
         
         static let card = LinearGradient(
-            colors: [Colors.surface, Colors.surface2],
+            colors: [Color(hex: "#FFFFFF"), Color(hex: "#F8FAFC")],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -91,9 +93,9 @@ enum ZevTheme {
     
     // ─── Shadows ─────────────────────────────────────────────────────────────
     enum Shadow {
-        static let sm = Color.black.opacity(0.3)
-        static let md = Color.black.opacity(0.5)
-        static let glow = Colors.primary.opacity(0.3)
+        static let sm = Color.black.opacity(0.04)
+        static let md = Color.black.opacity(0.07)
+        static let glow = Colors.primary.opacity(0.12)
     }
     
     // ─── Animation ───────────────────────────────────────────────────────────
@@ -101,6 +103,54 @@ enum ZevTheme {
         static let fast    = SwiftUI.Animation.easeInOut(duration: 0.2)
         static let normal  = SwiftUI.Animation.easeInOut(duration: 0.3)
         static let spring  = SwiftUI.Animation.spring(response: 0.4, dampingFraction: 0.7)
+    }
+}
+
+// MARK: - Rainbow LED Animation Component
+// Hiệu ứng chữ đổi 7 màu LED liên tục chuẩn RGB Neon
+struct RainbowLEDText: View {
+    let text: String
+    var fontSize: CGFloat = 26
+    var fontWeight: Font.Weight = .black
+    var tracking: CGFloat = 2.0
+    
+    @State private var isAnimating: Bool = false
+    
+    // 7 màu LED cầu vồng: Đỏ, Cam, Vàng, Lục, Lam, Chàm, Tím và lặp lại
+    private let rainbowColors: [Color] = [
+        Color(hex: "#FF0000"), // Đỏ
+        Color(hex: "#FF7700"), // Cam
+        Color(hex: "#FFDD00"), // Vàng
+        Color(hex: "#00E676"), // Lục
+        Color(hex: "#00E5FF"), // Lam
+        Color(hex: "#2979FF"), // Chàm
+        Color(hex: "#D500F9"), // Tím
+        Color(hex: "#FF007F"), // Hồng
+        Color(hex: "#FF0000")  // Lặp lại
+    ]
+    
+    var body: some View {
+        Text(text)
+            .font(.system(size: fontSize, weight: fontWeight, design: .rounded))
+            .tracking(tracking)
+            .foregroundStyle(
+                LinearGradient(
+                    colors: rainbowColors,
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .hueRotation(.degrees(isAnimating ? 360 : 0))
+            .shadow(color: Color(hex: "#00E5FF").opacity(0.35), radius: 6, x: 0, y: 0)
+            .shadow(color: Color(hex: "#D500F9").opacity(0.3), radius: 10, x: 0, y: 0)
+            .onAppear {
+                withAnimation(
+                    .linear(duration: 3.0)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    isAnimating = true
+                }
+            }
     }
 }
 

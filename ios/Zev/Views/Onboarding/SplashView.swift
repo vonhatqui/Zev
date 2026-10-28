@@ -28,40 +28,27 @@ struct SplashView: View {
             VStack(spacing: 24) {
                 Spacer()
                 
-                // Logo Container
-                ZStack {
-                    Circle()
-                        .fill(ZevTheme.Colors.surface2)
-                        .frame(width: 120, height: 120)
-                        .overlay(
-                            Circle()
-                                .stroke(ZevTheme.Gradients.primary, lineWidth: 2)
-                        )
-                        .shadow(color: ZevTheme.Colors.primary.opacity(0.5), radius: 24, x: 0, y: 0)
-                    
-                    AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 80, height: 80)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                        default:
-                            Image(systemName: "bolt.shield.fill")
-                                .font(.system(size: 48))
-                                .foregroundStyle(ZevTheme.Gradients.primary)
-                        }
+                // Logo Container (Sạch sẽ, không viền tím)
+                AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 96, height: 96)
+                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
+                    default:
+                        Image(systemName: "bolt.shield.fill")
+                            .font(.system(size: 56))
+                            .foregroundColor(ZevTheme.Colors.primary)
                     }
-                    .scaleEffect(isAnimating ? 1.05 : 0.95)
                 }
+                .scaleEffect(isAnimating ? 1.05 : 0.95)
                 
                 // Title & Subtitle
-                VStack(spacing: 6) {
-                    Text("ZEV")
-                        .font(.system(size: 36, weight: .black, design: .rounded))
-                        .foregroundStyle(ZevTheme.Gradients.primary)
-                        .tracking(3)
+                VStack(spacing: 8) {
+                    RainbowLEDText(text: "ZEV", fontSize: 40)
                     
                     Text("iOS System & Game Enhancement")
                         .font(ZevTheme.Typography.caption(13))
