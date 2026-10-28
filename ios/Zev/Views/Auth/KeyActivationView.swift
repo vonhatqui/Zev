@@ -38,22 +38,15 @@ struct KeyActivationView: View {
                     
                     // MARK: - Top App Logo & Branding
                     VStack(spacing: 14) {
-                        // Logo sạch sẽ, loại bỏ hoàn toàn viền tím
-                        AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
-                            default:
-                                Image(systemName: "key.fill")
-                                    .font(.system(size: 38))
-                                    .foregroundColor(ZevTheme.Colors.primary)
-                            }
-                        }
+                        // Logo sạch sẽ, tải tức thì từ bundle hoặc cache
+                        ZevCachedImage(
+                            urlString: AppConfig.appLogoURL,
+                            fallbackSystemIcon: "key.fill",
+                            width: 80,
+                            height: 80,
+                            cornerRadius: 18
+                        )
+                        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
                         
                         VStack(spacing: 6) {
                             HStack(spacing: 8) {

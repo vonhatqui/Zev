@@ -222,3 +222,77 @@ struct DeviceChip: View {
         )
     }
 }
+
+// MARK: - ZevCachedImage
+// Tải ảnh tức thì: ưu tiên ảnh local trong Bundle/Disk -> sau đó mới tải từ URL
+
+struct ZevCachedImage: View {
+    let urlString: String?
+    let fallbackSystemIcon: String
+    var width: CGFloat = 40
+    var height: CGFloat = 40
+    var cornerRadius: CGFloat = 8
+    
+    var body: some View {
+        Group {
+            if let localImage = findLocalImage() {
+                Image(uiImage: localImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: width, height: height)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            } else if let urlStr = urlString, let validURL = URL(string: urlStr), !urlStr.isEmpty {
+                AsyncImage(url: validURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: width, height: height)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    default:
+                        placeholderIcon
+                    }
+                }
+            } else {
+                placeholderIcon
+            }
+        }
+    }
+    
+    private var placeholderIcon: some View {
+        Image(systemName: fallbackSystemIcon)
+            .font(.system(size: min(width, height) * 0.5))
+            .foregroundColor(ZevTheme.Colors.primary)
+            .frame(width: width, height: height)
+    }
+    
+    private func findLocalImage() -> UIImage? {
+        guard let urlString = urlString, !urlString.isEmpty else { return nil }
+        
+        let filename = (urlString as NSString).lastPathComponent
+        let nameWithoutExt = ((filename as NSString).deletingPathExtension).lowercased()
+        
+        // 1. Kiểm tra Assets
+        if let img = UIImage(named: filename) ?? UIImage(named: nameWithoutExt) {
+            return img
+        }
+        
+        // 2. Kiểm tra trong Bundle Root hoặc Images/
+        let possiblePaths = [
+            Bundle.main.path(forResource: nameWithoutExt, ofType: "png"),
+            Bundle.main.path(forResource: filename, ofType: nil),
+            Bundle.main.path(forResource: "Images/\(filename)", ofType: nil),
+            Bundle.main.path(forResource: "Images/\(nameWithoutExt)", ofType: "png")
+        ]
+        
+        for path in possiblePaths {
+            if let p = path, let img = UIImage(contentsOfFile: p) {
+                return img
+            }
+        }
+        
+        return nil
+    }
+}
+

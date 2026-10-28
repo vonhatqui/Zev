@@ -7,17 +7,21 @@ struct MainTabView: View {
     @State private var selectedTab: Int = 0
     
     init() {
-        // Tuỳ biến giao diện TabBar UIKit chuẩn Dark Mode
+        // Tuỳ biến giao diện TabBar UIKit chuẩn Light/White Mode
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(Color(hex: "#111218"))
+        appearance.backgroundColor = UIColor(Color(hex: "#FFFFFF"))
+        appearance.shadowColor = UIColor(Color(hex: "#E2E8F0"))
         
         let itemAppearance = UITabBarItemAppearance()
-        itemAppearance.normal.iconColor = UIColor(Color(hex: "#8B91A8"))
-        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(Color(hex: "#8B91A8"))]
+        itemAppearance.normal.iconColor = UIColor(Color(hex: "#64748B"))
+        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(Color(hex: "#64748B"))]
         
-        itemAppearance.selected.iconColor = UIColor(Color(hex: "#6C63FF"))
-        itemAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(Color(hex: "#6C63FF"))]
+        itemAppearance.selected.iconColor = UIColor(Color(hex: "#0F172A"))
+        itemAppearance.selected.titleTextAttributes = [
+            .foregroundColor: UIColor(Color(hex: "#0F172A")),
+            .font: UIFont.systemFont(ofSize: 10, weight: .bold)
+        ]
         
         appearance.stackedLayoutAppearance = itemAppearance
         UITabBar.appearance().standardAppearance = appearance

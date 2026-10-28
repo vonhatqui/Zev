@@ -38,7 +38,7 @@ $navItems = [
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <img src="https://files.catbox.moe/kony5d.png" alt="Zev" onerror="this.style.display='none'">
+      <img src="/admin/assets/images/logo.png" alt="Zev" onerror="this.src='https://files.catbox.moe/kony5d.png'">
       <div>
         <div class="sidebar-logo-text">Zev</div>
         <div class="sidebar-logo-sub">Admin Panel</div>

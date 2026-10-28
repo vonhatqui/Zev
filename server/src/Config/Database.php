@@ -67,6 +67,15 @@ class Database
                         KEY `idx_rate_lookup` (`identifier`, `endpoint`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
                 ");
+                // Tự động chuẩn hóa đường dẫn ảnh sang máy chủ nội bộ để load tức thì
+                try {
+                    $this->pdo->exec("
+                        UPDATE games SET logo_url = '/admin/assets/images/logo.png' WHERE logo_url LIKE '%catbox.moe%';
+                        UPDATE feature_categories SET logo_url = '/admin/assets/images/menu-project.png' WHERE slug = 'menu-project' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
+                        UPDATE feature_categories SET logo_url = '/admin/assets/images/aim-cache.png' WHERE slug = 'aim-cache' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
+                        UPDATE feature_categories SET logo_url = '/admin/assets/images/modskin.png' WHERE slug LIKE '%modskin%' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
+                    ");
+                } catch (\Throwable $e) {}
             } catch (\Throwable $e) {}
         } catch (\PDOException $e) {
             // Nếu không kết nối được MySQL (ví dụ dev local chưa cấu hình MySQL cPanel), fallback sang SQLite
@@ -269,17 +278,17 @@ class Database
             ('download_token_ttl_seconds', '300', 'TTL download token', 0);
 
             INSERT OR IGNORE INTO games (id, bundle_id, display_name, short_name, logo_url, sort_order) VALUES
-            (1, 'com.dts.freefireth', 'Free Fire Thường', 'FFTH', 'https://files.catbox.moe/kony5d.png', 1),
-            (2, 'com.dts.freefiremax', 'Free Fire MAX', 'FFMAX', 'https://files.catbox.moe/kony5d.png', 2);
+            (1, 'com.dts.freefireth', 'Free Fire Thường', 'FFTH', '/admin/assets/images/logo.png', 1),
+            (2, 'com.dts.freefiremax', 'Free Fire MAX', 'FFMAX', '/admin/assets/images/logo.png', 2);
 
             INSERT OR IGNORE INTO feature_categories (id, game_id, slug, display_name, logo_url, description, sort_order) VALUES
-            (1, 1, 'menu-project', 'Menu Project', 'https://files.catbox.moe/wetz7r.png', 'Menu hack và script tổng hợp', 1),
-            (2, 1, 'aim-cache', 'Aim Cache', 'https://files.catbox.moe/z7c8o6.png', 'Tối ưu ngắm và khóa mục tiêu', 2),
-            (3, 1, 'modskin-ffth', 'Modskin FFTH', 'https://files.catbox.moe/dvyw27.png', 'Mod trang phục và hiệu ứng nhân vật', 3),
+            (1, 1, 'menu-project', 'Menu Project', '/admin/assets/images/menu-project.png', 'Menu hack và script tổng hợp', 1),
+            (2, 1, 'aim-cache', 'Aim Cache', '/admin/assets/images/aim-cache.png', 'Tối ưu ngắm và khóa mục tiêu', 2),
+            (3, 1, 'modskin-ffth', 'Modskin FFTH', '/admin/assets/images/modskin.png', 'Mod trang phục và hiệu ứng nhân vật', 3),
             (4, 1, 'setup-antiban', 'Setup Antiban', '', 'Cấu hình bảo vệ tài khoản qua sing-box', 4),
-            (5, 2, 'menu-project', 'Menu Project', 'https://files.catbox.moe/wetz7r.png', 'Menu hack cho Free Fire MAX', 1),
-            (6, 2, 'aim-cache', 'Aim Cache', 'https://files.catbox.moe/z7c8o6.png', 'Aim Cache cho Free Fire MAX', 2),
-            (7, 2, 'modskin-ffmax', 'Modskin FFMAX', 'https://files.catbox.moe/dvyw27.png', 'Modskin cho Free Fire MAX', 3),
+            (5, 2, 'menu-project', 'Menu Project', '/admin/assets/images/menu-project.png', 'Menu hack cho Free Fire MAX', 1),
+            (6, 2, 'aim-cache', 'Aim Cache', '/admin/assets/images/aim-cache.png', 'Aim Cache cho Free Fire MAX', 2),
+            (7, 2, 'modskin-ffmax', 'Modskin FFMAX', '/admin/assets/images/modskin.png', 'Modskin cho Free Fire MAX', 3),
             (8, 2, 'setup-antiban', 'Setup Antiban', '', 'Cấu hình sing-box cho FFMAX', 4);
 
             INSERT OR IGNORE INTO features (id, category_id, slug, display_name, description, status, sort_order) VALUES

@@ -28,22 +28,15 @@ struct SplashView: View {
             VStack(spacing: 24) {
                 Spacer()
                 
-                // Logo Container (Sạch sẽ, không viền tím)
-                AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 96, height: 96)
-                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
-                    default:
-                        Image(systemName: "bolt.shield.fill")
-                            .font(.system(size: 56))
-                            .foregroundColor(ZevTheme.Colors.primary)
-                    }
-                }
+                // Logo Container (Sạch sẽ, tải tức thì)
+                ZevCachedImage(
+                    urlString: AppConfig.appLogoURL,
+                    fallbackSystemIcon: "bolt.shield.fill",
+                    width: 96,
+                    height: 96,
+                    cornerRadius: 22
+                )
+                .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
                 .scaleEffect(isAnimating ? 1.05 : 0.95)
                 
                 // Title & Subtitle

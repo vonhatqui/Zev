@@ -143,7 +143,7 @@ final class APIService {
             "key":          keyCode,
             "device_id":    device.deviceIdentifier,
             "ios_version":  device.iosVersion,
-            "device_model": device.deviceModelIdentifier,
+            "device_model": device.deviceCommercialName,
             "app_version":  AppConfig.appVersion,
         ]
         

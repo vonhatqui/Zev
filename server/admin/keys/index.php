@@ -134,13 +134,15 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
           </td>
           <td>
             <span class="badge badge-<?= $displayStatus ?>">
-              <?= match($displayStatus) {
-                'active'    => '✅ Hoạt động',
-                'expired'   => '⏰ Hết hạn',
-                'revoked'   => '🚫 Thu hồi',
-                'suspended' => '⏸️ Tạm khóa',
-                default     => $displayStatus
-              } ?>
+              <?php
+                $statusLabels = [
+                  'active'    => '✅ Hoạt động',
+                  'expired'   => '⏰ Hết hạn',
+                  'revoked'   => '🚫 Thu hồi',
+                  'suspended' => '⏸️ Tạm khóa',
+                ];
+                echo $statusLabels[$displayStatus] ?? $displayStatus;
+              ?>
             </span>
           </td>
           <td style="font-size:0.85rem; <?= $isExpired ? 'color:var(--color-danger)' : '' ?>">

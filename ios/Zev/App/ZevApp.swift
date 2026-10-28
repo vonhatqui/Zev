@@ -10,7 +10,7 @@ struct ZevApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
         }
     }
 }

@@ -52,6 +52,12 @@ jobs:
           echo "Found app at: $APP_PATH"
           
           mkdir -p Payload
+          # Nhúng tài nguyên ảnh vào app bundle để load tức thì không cần mạng
+          if [ -d "Zev/Resources/Images" ]; then
+            cp -r Zev/Resources/Images/* "$APP_PATH/" 2>/dev/null || true
+            mkdir -p "$APP_PATH/Images"
+            cp -r Zev/Resources/Images/* "$APP_PATH/Images/" 2>/dev/null || true
+          fi
           cp -r "$APP_PATH" Payload/
           zip -r ../Zev.ipa Payload
           cd ..

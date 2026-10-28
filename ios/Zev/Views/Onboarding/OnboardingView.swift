@@ -33,22 +33,15 @@ struct OnboardingView: View {
                     
                     // MARK: - Header
                     VStack(spacing: 12) {
-                        // Logo không viền tím
-                        AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 76, height: 76)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
-                            default:
-                                Image(systemName: "gearshape.2.fill")
-                                    .font(.system(size: 38))
-                                    .foregroundColor(ZevTheme.Colors.primary)
-                            }
-                        }
+                        // Logo tải tức thì
+                        ZevCachedImage(
+                            urlString: AppConfig.appLogoURL,
+                            fallbackSystemIcon: "gearshape.2.fill",
+                            width: 76,
+                            height: 76,
+                            cornerRadius: 18
+                        )
+                        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
                         
                         VStack(spacing: 4) {
                             Text("THIẾT LẬP ỨNG DỤNG")

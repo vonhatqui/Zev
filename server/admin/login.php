@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="login-card">
 
     <div class="login-logo">
-      <img src="https://files.catbox.moe/kony5d.png" alt="Zev Logo" onerror="this.style.display='none'">
+      <img src="/admin/assets/images/logo.png" alt="Zev Logo" onerror="this.src='https://files.catbox.moe/kony5d.png'">
       <h1>Zev Admin</h1>
       <p>Hệ thống quản trị server</p>
     </div>

@@ -33,7 +33,7 @@ enum AppConfig {
     
     // ─── App Information ───────────────────────────────────────────────
     static let appName: String      = "Zev"
-    static let appLogoURL: String   = "https://files.catbox.moe/kony5d.png"
+    static var appLogoURL: String   { "\(baseURL)/admin/assets/images/logo.png" }
     static let appVersion: String   = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     static let buildNumber: String  = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
     

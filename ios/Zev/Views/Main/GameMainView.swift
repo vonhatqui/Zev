@@ -146,20 +146,20 @@ struct GameMainView: View {
                                 .padding(.vertical, 12)
                             }
                         }
-                        .background(ZevTheme.Colors.surface2)
+                        .background(ZevTheme.Colors.surface)
                         .cornerRadius(ZevTheme.Radius.md)
                         .overlay(
                             RoundedRectangle(cornerRadius: ZevTheme.Radius.md)
-                                .stroke(SupportPolicy.isCurrentDeviceSupported ? ZevTheme.Colors.primary.opacity(0.4) : ZevTheme.Colors.danger.opacity(0.4), lineWidth: 1.5)
+                                .stroke(ZevTheme.Colors.border, lineWidth: 1)
                         )
-                        .shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 3)
+                        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
                         .padding(.top, 14)
                         
-                        // MARK: - DANH MỤC CHỨC NĂNG
-                        VStack(alignment: .leading, spacing: 14) {
+                        // MARK: - DANH MỤC CHỨC NĂNG (Nút chọn danh mục)
+                        VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text("DANH MỤC TÍNH NĂNG")
-                                    .font(ZevTheme.Typography.caption(12))
+                                Text("CHỌN DANH MỤC TÍNH NĂNG")
+                                    .font(ZevTheme.Typography.caption(11))
                                     .fontWeight(.bold)
                                     .foregroundColor(ZevTheme.Colors.textMuted)
                                     .tracking(1)
@@ -172,11 +172,56 @@ struct GameMainView: View {
                                 }
                             }
                             
-                            // Danh sách categories dạng Card List
-                            VStack(spacing: 14) {
-                                ForEach(categories) { cat in
-                                    categorySection(cat)
+                            // Các nút chọn danh mục
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    ForEach(categories) { cat in
+                                        let isSelected = (selectedCategory?.id == cat.id) || (selectedCategory == nil && cat.id == categories.first?.id)
+                                        Button(action: {
+                                            let gen = UIImpactFeedbackGenerator(style: .light)
+                                            gen.impactOccurred()
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                selectedCategory = cat
+                                            }
+                                        }) {
+                                            HStack(spacing: 8) {
+                                                categoryThumbnail(cat)
+                                                
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(cat.displayName)
+                                                        .font(.system(size: 13, weight: isSelected ? .bold : .semibold))
+                                                        .foregroundColor(isSelected ? .white : ZevTheme.Colors.text)
+                                                    
+                                                    let count = features.filter { $0.categoryId == cat.id }.count
+                                                    Text("\(count) tính năng")
+                                                        .font(.system(size: 10))
+                                                        .foregroundColor(isSelected ? Color.white.opacity(0.85) : ZevTheme.Colors.textMuted)
+                                                }
+                                            }
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(
+                                                isSelected ?
+                                                AnyView(ZevTheme.Gradients.primary) :
+                                                AnyView(ZevTheme.Colors.surface)
+                                            )
+                                            .cornerRadius(ZevTheme.Radius.md)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: ZevTheme.Radius.md)
+                                                    .stroke(isSelected ? Color.clear : ZevTheme.Colors.border, lineWidth: 1)
+                                            )
+                                            .shadow(color: Color.black.opacity(isSelected ? 0.12 : 0.03), radius: isSelected ? 6 : 3, x: 0, y: 2)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
                                 }
+                                .padding(.vertical, 4)
+                            }
+                            
+                            // MARK: - DANH SÁCH CHỨC NĂNG CỦA DANH MỤC ĐÃ CHỌN
+                            let activeCat = selectedCategory ?? categories.first
+                            if let cat = activeCat {
+                                selectedCategoryFeaturesView(category: cat)
                             }
                         }
                         .padding(.bottom, 36)
@@ -313,92 +358,83 @@ struct GameMainView: View {
         }
     }
     
-    // MARK: - Category Section View
+    // MARK: - Selected Category Features View
     
-    private func categorySection(_ category: FeatureCategory) -> some View {
+    private func selectedCategoryFeaturesView(category: FeatureCategory) -> some View {
         let catFeatures = features.filter { $0.categoryId == category.id }
         
-        return VStack(spacing: 0) {
-            // Category Header Card
-            HStack(spacing: 12) {
-                // Logo danh mục (link catbox hoặc icon)
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(ZevTheme.Colors.surface2)
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(ZevTheme.Colors.border, lineWidth: 1)
-                        )
-                    
-                    if let logoUrl = category.logoUrl, !logoUrl.isEmpty {
-                        AsyncImage(url: URL(string: logoUrl)) { phase in
-                            switch phase {
-                            case .success(let img):
-                                img.resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 32, height: 32)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                            default:
-                                defaultCategoryIcon(slug: category.slug)
-                            }
-                        }
-                    } else {
-                        defaultCategoryIcon(slug: category.slug)
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(category.displayName)
-                        .font(ZevTheme.Typography.heading(15))
-                        .foregroundColor(ZevTheme.Colors.text)
-                    
-                    Text(category.description ?? "Chức năng nạp bản vá")
-                        .font(ZevTheme.Typography.caption(12))
-                        .foregroundColor(ZevTheme.Colors.textMuted)
-                }
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(category.displayName.uppercased())
+                    .font(ZevTheme.Typography.caption(12))
+                    .fontWeight(.bold)
+                    .foregroundColor(ZevTheme.Colors.text)
                 
                 Spacer()
+                
+                Text("\(catFeatures.count) chức năng")
+                    .font(ZevTheme.Typography.caption(11))
+                    .foregroundColor(ZevTheme.Colors.textMuted)
             }
-            .padding(14)
-            .background(ZevTheme.Colors.surface)
+            .padding(.top, 4)
             
-            Divider()
-                .background(ZevTheme.Colors.border.opacity(0.7))
-            
-            // Sub-features List
+            // Khung danh sách chức năng
             VStack(spacing: 0) {
                 // Xử lý riêng cho Setup Antiban: hiển thị nút tải sing-box trên AppStore
                 if category.slug.contains("antiban") || category.slug.contains("singbox") {
                     antibanSpecialRow()
-                    Divider()
-                        .background(ZevTheme.Colors.border.opacity(0.4))
+                    if !catFeatures.isEmpty {
+                        Divider()
+                            .background(ZevTheme.Colors.border)
+                    }
                 }
                 
                 if catFeatures.isEmpty {
-                    HStack {
+                    VStack(spacing: 8) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 26))
+                            .foregroundColor(ZevTheme.Colors.textDim)
                         Text("Chưa có chức năng trong danh mục này")
                             .font(ZevTheme.Typography.caption(12))
-                            .foregroundColor(ZevTheme.Colors.textDim)
-                        Spacer()
+                            .foregroundColor(ZevTheme.Colors.textMuted)
                     }
-                    .padding(14)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 30)
                 } else {
                     ForEach(catFeatures) { feat in
                         featureRow(feat)
                         if feat.id != catFeatures.last?.id {
                             Divider()
-                                .background(ZevTheme.Colors.border.opacity(0.4))
+                                .background(ZevTheme.Colors.border.opacity(0.6))
                         }
                     }
                 }
             }
-            .background(ZevTheme.Colors.surface2.opacity(0.4))
+            .background(ZevTheme.Colors.surface)
+            .cornerRadius(ZevTheme.Radius.md)
+            .overlay(
+                RoundedRectangle(cornerRadius: ZevTheme.Radius.md)
+                    .stroke(ZevTheme.Colors.border, lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.03), radius: 6, x: 0, y: 2)
         }
-        .cornerRadius(ZevTheme.Radius.md)
-        .overlay(
-            RoundedRectangle(cornerRadius: ZevTheme.Radius.md)
-                .stroke(ZevTheme.Colors.border, lineWidth: 1)
+    }
+    
+    @ViewBuilder
+    private func categoryThumbnail(_ category: FeatureCategory) -> some View {
+        let fallbackIcon: String = {
+            if category.slug.contains("menu") { return "square.grid.2x2.fill" }
+            if category.slug.contains("aim") { return "scope" }
+            if category.slug.contains("modskin") { return "tshirt.fill" }
+            return "shield.checkerboard"
+        }()
+        
+        ZevCachedImage(
+            urlString: category.logoUrl,
+            fallbackSystemIcon: fallbackIcon,
+            width: 24,
+            height: 24,
+            cornerRadius: 6
         )
     }
     
@@ -573,6 +609,9 @@ struct GameMainView: View {
                 await MainActor.run {
                     self.categories = catRes.categories
                     self.features = featList
+                    if self.selectedCategory == nil {
+                        self.selectedCategory = self.categories.first
+                    }
                     self.isLoading = false
                 }
             } catch {
@@ -580,6 +619,9 @@ struct GameMainView: View {
                 await MainActor.run {
                     self.categories = defaultFallbackCategories(gameId: game.id)
                     self.features = defaultFallbackFeatures()
+                    if self.selectedCategory == nil {
+                        self.selectedCategory = self.categories.first
+                    }
                     self.isLoading = false
                 }
             }

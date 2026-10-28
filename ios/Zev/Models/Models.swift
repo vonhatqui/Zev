@@ -31,9 +31,13 @@ struct KeyInfo: Decodable {
     
     var expiryDate: Date? {
         guard let str = expiresAt else { return nil }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.date(from: str) ?? DateFormatter.serverDate.date(from: str)
+        if let d = DateFormatter.serverDate.date(from: str) { return d }
+        let iso1 = ISO8601DateFormatter()
+        iso1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = iso1.date(from: str) { return d }
+        let iso2 = ISO8601DateFormatter()
+        iso2.formatOptions = [.withInternetDateTime]
+        return iso2.date(from: str)
     }
     
     var isExpired: Bool {
@@ -42,9 +46,20 @@ struct KeyInfo: Decodable {
     }
     
     var displayExpiry: String {
-        if isLifetime { return NSLocalizedString("Vĩnh viễn", comment: "") }
-        guard let date = expiryDate else { return "—" }
-        return DateFormatter.displayDate.string(from: date)
+        if isLifetime { return "Vĩnh viễn" }
+        guard let date = expiryDate else { return expiresAt ?? "—" }
+        let diff = Calendar.current.dateComponents([.day, .hour], from: Date(), to: date)
+        let days = diff.day ?? 0
+        let hours = diff.hour ?? 0
+        let dateStr = DateFormatter.displayDate.string(from: date)
+        if days > 0 {
+            return "\(dateStr) (Còn \(days) ngày)"
+        } else if hours > 0 {
+            return "\(dateStr) (Còn \(hours) giờ)"
+        } else if date < Date() {
+            return "\(dateStr) (Đã hết hạn)"
+        }
+        return dateStr
     }
 }
 
