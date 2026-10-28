@@ -49,6 +49,7 @@ enum AppConfig {
         static func feature(_ id: Int) -> String        { "/features/\(id)" }
         static func fileMetadata(_ id: Int) -> String   { "/files/\(id)/metadata" }
         static func requestDownload(_ id: Int) -> String{ "/files/\(id)/request-download" }
+        static func activePatch(_ id: Int) -> String    { "/games/\(id)/patch" }
         static let logError          = "/log/error"
     }
     
@@ -87,9 +88,9 @@ enum AppConfig {
     }
     
     enum GameLogos {
-        // Logo chính thức Free Fire Thường & MAX
-        static let freeFireTH  = "https://files.catbox.moe/wetz7r.png"
-        static let freeFireMAX = "https://files.catbox.moe/dvyw27.png"
+        // Logo chính thức Free Fire Thường (https://ibb.co/xSHNXJF9) & MAX (https://ibb.co/j9R2HrQd)
+        static let freeFireTH  = "https://i.ibb.co/7J4qj2kM/IMG-4819.webp"
+        static let freeFireMAX = "https://i.ibb.co/spHGtVNh/IMG-4818.png"
     }
     
     static let singboxAppStoreURL = "https://apps.apple.com/app/sing-box/id6451272673"

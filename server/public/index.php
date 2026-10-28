@@ -76,6 +76,8 @@ try {
         (new GameController())->categories((int)$m[1]);
     } elseif ($method === 'GET' && preg_match('#^/games/(\d+)/features$#', $route, $m)) {
         (new GameController())->features((int)$m[1]);
+    } elseif ($method === 'GET' && preg_match('#^/games/(\d+)/patch$#', $route, $m)) {
+        (new GameController())->activePatch((int)$m[1]);
     } elseif ($method === 'GET' && preg_match('#^/features/(\d+)$#', $route, $m)) {
         (new GameController())->feature((int)$m[1]);
     } elseif ($method === 'GET' && preg_match('#^/files/(\d+)/metadata$#', $route, $m)) {

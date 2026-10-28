@@ -53,32 +53,32 @@ require_once __DIR__ . '/partials/header.php';
 
 <div class="stats-grid">
   <div class="stat-card primary">
-    <div class="stat-icon">🔑</div>
+    <div class="stat-icon"><i class="fa-solid fa-key"></i></div>
     <div class="stat-value"><?= number_format($keyStats['total'] ?? 0) ?></div>
     <div class="stat-label">Tổng số Key</div>
   </div>
   <div class="stat-card success">
-    <div class="stat-icon">✅</div>
+    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
     <div class="stat-value"><?= number_format($keyStats['active'] ?? 0) ?></div>
     <div class="stat-label">Key đang hoạt động</div>
   </div>
   <div class="stat-card warning">
-    <div class="stat-icon">⏰</div>
+    <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
     <div class="stat-value"><?= number_format($keyStats['expired'] ?? 0) ?></div>
     <div class="stat-label">Key hết hạn</div>
   </div>
   <div class="stat-card danger">
-    <div class="stat-icon">🚫</div>
+    <div class="stat-icon"><i class="fa-solid fa-ban"></i></div>
     <div class="stat-value"><?= number_format($keyStats['revoked'] ?? 0) ?></div>
     <div class="stat-label">Key bị thu hồi</div>
   </div>
   <div class="stat-card info">
-    <div class="stat-icon">📱</div>
+    <div class="stat-icon"><i class="fa-solid fa-mobile-screen"></i></div>
     <div class="stat-value"><?= number_format($deviceCount['cnt'] ?? 0) ?></div>
     <div class="stat-label">Thiết bị đã liên kết</div>
   </div>
   <div class="stat-card primary">
-    <div class="stat-icon">📦</div>
+    <div class="stat-icon"><i class="fa-solid fa-box-archive"></i></div>
     <div class="stat-value"><?= number_format($fileCount['cnt'] ?? 0) ?></div>
     <div class="stat-label">File đang hoạt động</div>
   </div>
@@ -89,7 +89,7 @@ require_once __DIR__ . '/partials/header.php';
   <!-- Recent Activity -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">📋 Hoạt động gần đây</span>
+      <span class="card-title"><i class="fa-solid fa-clipboard-list"></i> Hoạt động gần đây</span>
       <a href="/admin/logs/" class="btn btn-secondary btn-sm">Xem tất cả</a>
     </div>
     <div class="table-wrap">
@@ -121,13 +121,13 @@ require_once __DIR__ . '/partials/header.php';
   <!-- Expiring Keys -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">⏰ Key sắp hết hạn (7 ngày)</span>
+      <span class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Key sắp hết hạn (7 ngày)</span>
       <a href="/admin/keys/" class="btn btn-secondary btn-sm">Quản lý Key</a>
     </div>
     <div class="card-body">
       <?php if (empty($expiringKeys)): ?>
       <div class="empty-state" style="padding:24px 0;">
-        <div style="font-size:2rem; margin-bottom:8px;">✅</div>
+        <div style="font-size:1.8rem; color:var(--color-success); margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i></div>
         <p style="font-size:0.85rem; color:var(--color-text-muted);">Không có key nào sắp hết hạn</p>
       </div>
       <?php else: ?>
@@ -148,13 +148,13 @@ require_once __DIR__ . '/partials/header.php';
 <!-- Quick Actions -->
 <div class="card">
   <div class="card-header">
-    <span class="card-title">⚡ Thao tác nhanh</span>
+    <span class="card-title"><i class="fa-solid fa-bolt"></i> Thao tác nhanh</span>
   </div>
   <div class="card-body" style="display:flex; gap:12px; flex-wrap:wrap;">
-    <a href="/admin/keys/create.php" class="btn btn-primary">🔑 Tạo Key mới</a>
-    <a href="/admin/files/upload.php" class="btn btn-secondary">📦 Tải file lên</a>
-    <a href="/admin/app/config.php" class="btn btn-secondary">⚙️ Cấu hình App</a>
-    <a href="/admin/app/features.php" class="btn btn-secondary">🎮 Quản lý tính năng</a>
+    <a href="/admin/keys/create.php" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Tạo Key mới</a>
+    <a href="/admin/features/" class="btn btn-secondary"><i class="fa-solid fa-sliders"></i> Quản lý Bản Vá Game</a>
+    <a href="/admin/files/" class="btn btn-secondary"><i class="fa-solid fa-box-archive"></i> Kho File Tải</a>
+    <a href="/admin/app/" class="btn btn-secondary"><i class="fa-solid fa-gear"></i> Cấu hình App</a>
   </div>
 </div>
 

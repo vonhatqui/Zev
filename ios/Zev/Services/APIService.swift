@@ -222,6 +222,19 @@ final class APIService {
         return response.data?.features ?? []
     }
     
+    // MARK: - Active Patch (Single Patch Loader)
+    
+    func fetchActivePatch(for gameId: Int) async throws -> ActivePatchResponse {
+        let response: APIResponse<ActivePatchResponse> = try await request(
+            endpoint: AppConfig.Endpoints.activePatch(gameId),
+            requiresAuth: true
+        )
+        guard let data = response.data else {
+            throw APIError.serverError(200, response.message)
+        }
+        return data
+    }
+    
     // MARK: - File Metadata
     
     func fetchFileMetadata(fileId: Int) async throws -> FileMetadata {

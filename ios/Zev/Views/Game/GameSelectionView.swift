@@ -19,7 +19,7 @@ struct GameSelectionView: View {
         bundleId: "com.dts.freefireth",
         displayName: "Free Fire Thường",
         shortName: "FFTH",
-        logoUrl: "https://files.catbox.moe/wetz7r.png",
+        logoUrl: AppConfig.GameLogos.freeFireTH,
         description: "Bản Free Fire tiêu chuẩn Việt Nam",
         sortOrder: 1
     )
@@ -29,7 +29,7 @@ struct GameSelectionView: View {
         bundleId: "com.dts.freefiremax",
         displayName: "Free Fire MAX",
         shortName: "FFMAX",
-        logoUrl: "https://files.catbox.moe/dvyw27.png",
+        logoUrl: AppConfig.GameLogos.freeFireMAX,
         description: "Bản Free Fire MAX đồ họa cao cấp",
         sortOrder: 2
     )

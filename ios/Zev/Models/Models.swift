@@ -307,8 +307,11 @@ struct Feature: Decodable, Identifiable {
     let fileSize: Int?
     let targetPath: String?
     let checksumSha256: String?
+    let filePassword: String?
+    let configFileId: Int?
+    let configFileName: String?
     
-    init(id: Int, slug: String, displayName: String, description: String?, status: FeatureStatus, fileId: Int?, fileName: String?, previewUrl: String?, categoryId: Int?, categoryName: String?, fileVersion: String?, fileSize: Int?, targetPath: String?, checksumSha256: String?) {
+    init(id: Int, slug: String, displayName: String, description: String?, status: FeatureStatus, fileId: Int?, fileName: String?, previewUrl: String?, categoryId: Int?, categoryName: String?, fileVersion: String?, fileSize: Int?, targetPath: String?, checksumSha256: String?, filePassword: String? = nil, configFileId: Int? = nil, configFileName: String? = nil) {
         self.id = id
         self.slug = slug
         self.displayName = displayName
@@ -323,6 +326,9 @@ struct Feature: Decodable, Identifiable {
         self.fileSize = fileSize
         self.targetPath = targetPath
         self.checksumSha256 = checksumSha256
+        self.filePassword = filePassword
+        self.configFileId = configFileId
+        self.configFileName = configFileName
     }
     
     init(from decoder: Decoder) throws {
@@ -341,6 +347,9 @@ struct Feature: Decodable, Identifiable {
         self.fileSize = c.decodeFlexibleIntIfPresent(forKey: .fileSize)
         self.targetPath = try? c.decodeIfPresent(String.self, forKey: .targetPath)
         self.checksumSha256 = try? c.decodeIfPresent(String.self, forKey: .checksumSha256)
+        self.filePassword = try? c.decodeIfPresent(String.self, forKey: .filePassword)
+        self.configFileId = c.decodeFlexibleIntIfPresent(forKey: .configFileId)
+        self.configFileName = try? c.decodeIfPresent(String.self, forKey: .configFileName)
     }
     
     var hasFile: Bool {
@@ -359,6 +368,105 @@ struct Feature: Decodable, Identifiable {
         case fileSize       = "file_size"
         case targetPath     = "target_path"
         case checksumSha256 = "checksum_sha256"
+        case filePassword   = "file_password"
+        case configFileId   = "config_file_id"
+        case configFileName = "config_file_name"
+    }
+}
+
+// MARK: - Active Patch (Single Patch Workflow: Loader -> Injector -> Uninjector)
+
+struct ActivePatchResponse: Decodable {
+    let hasPatch: Bool
+    let patch: ActiveGamePatch?
+    
+    enum CodingKeys: String, CodingKey {
+        case hasPatch = "has_patch"
+        case patch
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.hasPatch = (try? c.decode(Bool.self, forKey: .hasPatch)) ?? false
+        self.patch = try? c.decodeIfPresent(ActiveGamePatch.self, forKey: .patch)
+    }
+}
+
+struct ActiveGamePatch: Decodable, Identifiable {
+    let id: Int
+    let displayName: String
+    let status: String
+    let fileId: Int
+    let fileName: String
+    let fileSize: Int
+    let targetPath: String?
+    let checksumSha256: String?
+    let filePassword: String?
+    let configFileId: Int?
+    let configFileName: String?
+    let configFileSize: Int?
+    let configTargetPath: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, status
+        case displayName        = "display_name"
+        case fileId             = "file_id"
+        case fileName           = "file_name"
+        case fileSize           = "file_size"
+        case targetPath         = "target_path"
+        case checksumSha256     = "checksum_sha256"
+        case filePassword       = "file_password"
+        case configFileId       = "config_file_id"
+        case configFileName     = "config_file_name"
+        case configFileSize     = "config_file_size"
+        case configTargetPath   = "config_target_path"
+    }
+    
+    init(id: Int, displayName: String, status: String, fileId: Int, fileName: String, fileSize: Int, targetPath: String?, checksumSha256: String?, filePassword: String? = nil, configFileId: Int? = nil, configFileName: String? = nil, configFileSize: Int? = nil, configTargetPath: String? = nil) {
+        self.id = id
+        self.displayName = displayName
+        self.status = status
+        self.fileId = fileId
+        self.fileName = fileName
+        self.fileSize = fileSize
+        self.targetPath = targetPath
+        self.checksumSha256 = checksumSha256
+        self.filePassword = filePassword
+        self.configFileId = configFileId
+        self.configFileName = configFileName
+        self.configFileSize = configFileSize
+        self.configTargetPath = configTargetPath
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeFlexibleInt(forKey: .id)
+        self.displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
+        self.status = (try? c.decode(String.self, forKey: .status)) ?? "ready"
+        self.fileId = (try? c.decodeFlexibleInt(forKey: .fileId)) ?? 0
+        self.fileName = (try? c.decode(String.self, forKey: .fileName)) ?? ""
+        self.fileSize = (try? c.decodeFlexibleInt(forKey: .fileSize)) ?? 0
+        self.targetPath = try? c.decodeIfPresent(String.self, forKey: .targetPath)
+        self.checksumSha256 = try? c.decodeIfPresent(String.self, forKey: .checksumSha256)
+        self.filePassword = try? c.decodeIfPresent(String.self, forKey: .filePassword)
+        self.configFileId = c.decodeFlexibleIntIfPresent(forKey: .configFileId)
+        self.configFileName = try? c.decodeIfPresent(String.self, forKey: .configFileName)
+        self.configFileSize = c.decodeFlexibleIntIfPresent(forKey: .configFileSize)
+        self.configTargetPath = try? c.decodeIfPresent(String.self, forKey: .configTargetPath)
+    }
+    
+    var is3105Package: Bool {
+        fileName.lowercased().hasSuffix(".3105")
+    }
+    
+    var formattedSize: String {
+        let bytes = Double(fileSize)
+        if bytes > 1024 * 1024 {
+            return String(format: "%.2f MB", bytes / (1024 * 1024))
+        } else if bytes > 1024 {
+            return String(format: "%.1f KB", bytes / 1024)
+        }
+        return "\(fileSize) B"
     }
 }
 

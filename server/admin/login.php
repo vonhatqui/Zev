@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đăng nhập — Zev Admin</title>
   <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="/admin/assets/css/admin.css">
   <style>
     .login-form-title {
@@ -87,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php if ($error): ?>
     <div class="alert alert-danger" id="error-alert">
-      <span>⚠️</span>
+      <span><i class="fa-solid fa-triangle-exclamation"></i></span>
       <span><?= htmlspecialchars($error) ?></span>
     </div>
     <?php endif; ?>
@@ -124,14 +125,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             style="padding-right: 42px;"
           >
           <button type="button" class="password-toggle" id="togglePass" title="Hiện/ẩn mật khẩu">
-            👁️
+            <i class="fa-solid fa-eye" id="toggleIcon"></i>
           </button>
         </div>
       </div>
 
       <button type="submit" class="btn btn-primary login-btn" id="submitBtn">
         <span id="btnText">Đăng nhập</span>
-        <span id="btnSpinner" style="display:none">⏳</span>
+        <span id="btnSpinner" style="display:none"><i class="fa-solid fa-circle-notch fa-spin" style="margin-left:6px;"></i></span>
       </button>
     </form>
 
@@ -145,7 +146,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // Toggle password visibility
   document.getElementById('togglePass').addEventListener('click', function() {
     const input = document.getElementById('password');
-    input.type = input.type === 'password' ? 'text' : 'password';
+    const icon = document.getElementById('toggleIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
   });
 
   // Submit loading state

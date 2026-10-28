@@ -54,7 +54,9 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 
 <div class="page-header" style="margin-bottom: 24px;">
   <div>
-    <h1 style="font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px;">Cấu hình Hệ thống Zev</h1>
+    <h1 style="font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px;">
+      <i class="fa-solid fa-gear" style="color:var(--color-primary); margin-right:8px;"></i> Cấu hình Hệ thống Zev
+    </h1>
     <p style="color: var(--color-text-muted); font-size: 0.9rem;">
       Quản lý phiên bản ứng dụng, bảo trì, thông báo toàn hệ thống và kênh hỗ trợ.
     </p>
@@ -63,13 +65,13 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 
 <?php if ($successMsg): ?>
   <div class="alert alert-success" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80;">
-    ✓ <?= htmlspecialchars($successMsg) ?>
+    <i class="fa-solid fa-circle-check"></i> <?= htmlspecialchars($successMsg) ?>
   </div>
 <?php endif; ?>
 
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171;">
-    ✕ <?= htmlspecialchars($errorMsg) ?>
+    <i class="fa-solid fa-circle-exclamation"></i> <?= htmlspecialchars($errorMsg) ?>
   </div>
 <?php endif; ?>
 
@@ -78,14 +80,16 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
   <!-- Card 1: Chế độ bảo trì -->
   <div class="card">
     <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 12px; margin-bottom: 16px;">
-      <h3 style="font-size: 1.1rem; color: #fff; font-weight: 600;">🛠️ Trạng thái Máy chủ & Bảo trì</h3>
+      <h3 style="font-size: 1.1rem; color: #fff; font-weight: 600;">
+        <i class="fa-solid fa-screwdriver-wrench" style="color:var(--color-warning); margin-right:6px;"></i> Trạng thái Máy chủ & Bảo trì
+      </h3>
     </div>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
       <div class="form-group" style="grid-column: span 2;">
         <label style="display: block; margin-bottom: 8px; font-weight: 500;">Chế độ bảo trì ứng dụng (Maintenance Mode)</label>
         <select name="config[maintenance_mode]" class="form-control" style="max-width: 300px;">
-          <option value="0" <?= ($currentConfig['maintenance_mode'] ?? '0') === '0' ? 'selected' : '' ?>>🟢 Hoạt động bình thường (Online)</option>
-          <option value="1" <?= ($currentConfig['maintenance_mode'] ?? '0') === '1' ? 'selected' : '' ?>>🔴 Đang bảo trì (Tạm khóa app)</option>
+          <option value="0" <?= ($currentConfig['maintenance_mode'] ?? '0') === '0' ? 'selected' : '' ?>>Hoạt động bình thường (Online)</option>
+          <option value="1" <?= ($currentConfig['maintenance_mode'] ?? '0') === '1' ? 'selected' : '' ?>>Đang bảo trì (Tạm khóa app)</option>
         </select>
       </div>
 
@@ -104,7 +108,9 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
   <!-- Card 2: Quản lý Phiên bản iOS -->
   <div class="card">
     <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 12px; margin-bottom: 16px;">
-      <h3 style="font-size: 1.1rem; color: #fff; font-weight: 600;">📱 Quản lý Phiên bản iOS (Version & Update)</h3>
+      <h3 style="font-size: 1.1rem; color: #fff; font-weight: 600;">
+        <i class="fa-solid fa-mobile-screen" style="color:var(--color-primary); margin-right:6px;"></i> Quản lý Phiên bản iOS (Version & Update)
+      </h3>
     </div>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
       <div class="form-group">
@@ -133,7 +139,9 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
   <!-- Card 3: Thông báo & Kênh hỗ trợ -->
   <div class="card">
     <div class="card-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 12px; margin-bottom: 16px;">
-      <h3 style="font-size: 1.1rem; color: #fff; font-weight: 600;">📢 Thông báo & Kênh Hỗ trợ</h3>
+      <h3 style="font-size: 1.1rem; color: #fff; font-weight: 600;">
+        <i class="fa-solid fa-bullhorn" style="color:var(--color-primary); margin-right:6px;"></i> Thông báo & Kênh Hỗ trợ
+      </h3>
     </div>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
       <div class="form-group" style="grid-column: span 2;">
@@ -155,7 +163,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 
   <div>
     <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-weight: 600; font-size: 1rem;">
-      💾 Lưu Tất Cả Cấu Hình
+      <i class="fa-solid fa-floppy-disk"></i> Lưu Tất Cả Cấu Hình
     </button>
   </div>
 </form>

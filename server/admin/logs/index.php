@@ -24,7 +24,7 @@ if (isset($_POST['clear_logs'])) {
 }
 
 // Lấy danh sách log mới nhất
-$type = sanitize($_GET['type'] ?? 'activation');
+$type = sanitizeString($_GET['type'] ?? 'activation');
 
 if ($type === 'errors') {
     $logs = $db->fetchAll("SELECT * FROM error_logs ORDER BY id DESC LIMIT 100");
@@ -43,16 +43,18 @@ $activePage = 'logs';
 require_once ZEV_ROOT . '/admin/partials/header.php';
 ?>
 
-<div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+<div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap:wrap; gap:12px;">
   <div>
-    <h1 style="font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px;">Nhật ký Hoạt động (Logs)</h1>
+    <h1 style="font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px;">
+      <i class="fa-solid fa-clipboard-list" style="color:var(--color-primary); margin-right:8px;"></i> Nhật ký Hoạt động (Logs)
+    </h1>
     <p style="color: var(--color-text-muted); font-size: 0.9rem;">
       Theo dõi yêu cầu xác thực API, thiết bị kích hoạt và lỗi phát sinh từ ứng dụng.
     </p>
   </div>
   <form method="POST" onsubmit="return confirm('Bạn chắc chắn muốn xóa toàn bộ log?');">
-    <button type="submit" name="clear_logs" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
-      🗑️ Xóa sạch Log
+    <button type="submit" name="clear_logs" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border:1px solid #ef4444;">
+      <i class="fa-solid fa-trash-can"></i> Xóa sạch Log
     </button>
   </form>
 </div>
@@ -60,10 +62,10 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 <!-- Tabs -->
 <div style="display: flex; gap: 12px; margin-bottom: 20px;">
   <a href="?type=activation" class="btn btn-sm <?= $type !== 'errors' ? 'btn-primary' : '' ?>" style="<?= $type === 'errors' ? 'background: var(--color-surface2); color: var(--color-text-muted);' : '' ?>">
-    ⚡ API & Kích hoạt (100 gần nhất)
+    <i class="fa-solid fa-bolt"></i> API & Kích hoạt (100 gần nhất)
   </a>
   <a href="?type=errors" class="btn btn-sm <?= $type === 'errors' ? 'btn-primary' : '' ?>" style="<?= $type !== 'errors' ? 'background: var(--color-surface2); color: var(--color-text-muted);' : '' ?>">
-    ⚠️ Lỗi Ứng dụng & Server (Errors)
+    <i class="fa-solid fa-triangle-exclamation"></i> Lỗi Ứng dụng & Server (Errors)
   </a>
 </div>
 

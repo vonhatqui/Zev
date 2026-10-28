@@ -14,12 +14,12 @@ $adminRole = $admin['role'] ?? 'admin';
 $adminInitial = strtoupper(substr($adminName, 0, 1));
 
 $navItems = [
-    ['id' => 'dashboard', 'label' => 'Dashboard',       'icon' => '📊', 'href' => '/admin/'],
-    ['id' => 'keys',      'label' => 'Quản lý Key',     'icon' => '🔑', 'href' => '/admin/keys/'],
-    ['id' => 'features',  'label' => 'Chức năng & File', 'icon' => '🎯', 'href' => '/admin/features/'],
-    ['id' => 'app',       'label' => 'Cấu hình App',    'icon' => '⚙️', 'href' => '/admin/app/'],
-    ['id' => 'files',     'label' => 'Kho File Tải',    'icon' => '📦', 'href' => '/admin/files/'],
-    ['id' => 'logs',      'label' => 'Nhật ký',         'icon' => '📋', 'href' => '/admin/logs/'],
+    ['id' => 'dashboard', 'label' => 'Dashboard',             'icon' => '<i class="fa-solid fa-chart-line"></i>',      'href' => '/admin/'],
+    ['id' => 'keys',      'label' => 'Quản lý Key',           'icon' => '<i class="fa-solid fa-key"></i>',             'href' => '/admin/keys/'],
+    ['id' => 'features',  'label' => 'Quản lý Bản Vá & File', 'icon' => '<i class="fa-solid fa-sliders"></i>',         'href' => '/admin/features/'],
+    ['id' => 'app',       'label' => 'Cấu hình App',          'icon' => '<i class="fa-solid fa-gear"></i>',            'href' => '/admin/app/'],
+    ['id' => 'files',     'label' => 'Kho File Tải',          'icon' => '<i class="fa-solid fa-box-archive"></i>',     'href' => '/admin/files/'],
+    ['id' => 'logs',      'label' => 'Nhật ký Hoạt động',     'icon' => '<i class="fa-solid fa-clipboard-list"></i>', 'href' => '/admin/logs/'],
 ];
 ?>
 <!DOCTYPE html>
@@ -29,6 +29,7 @@ $navItems = [
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($pageTitle ?? 'Admin') ?> — Zev Admin</title>
   <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="/admin/assets/css/admin.css">
   <?php if (isset($extraStyles)) echo $extraStyles; ?>
 </head>
@@ -62,7 +63,7 @@ $navItems = [
       </div>
       <div style="margin-bottom:10px;"><?= ucfirst($adminRole) ?></div>
       <a href="/admin/logout.php" style="color:var(--color-danger); font-size:0.8rem;">
-        🚪 Đăng xuất
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
       </a>
     </div>
   </aside>

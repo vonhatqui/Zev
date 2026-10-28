@@ -87,14 +87,29 @@ class Database
                         }
                     }
                 } catch (\Throwable $e) {}
-                // Tự động chuẩn hóa đường dẫn ảnh sang máy chủ nội bộ để load tức thì
+                // Tự động cập nhật logo chính thức theo yêu cầu user
                 try {
                     $this->pdo->exec("
-                        UPDATE games SET logo_url = '/admin/assets/images/logo.png' WHERE logo_url LIKE '%catbox.moe%';
+                        UPDATE games SET logo_url = 'https://i.ibb.co/7J4qj2kM/IMG-4819.webp' WHERE id = 1 OR bundle_id = 'com.dts.freefireth';
+                        UPDATE games SET logo_url = 'https://i.ibb.co/spHGtVNh/IMG-4818.png' WHERE id = 2 OR bundle_id = 'com.dts.freefiremax';
                         UPDATE feature_categories SET logo_url = '/admin/assets/images/menu-project.png' WHERE slug = 'menu-project' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
                         UPDATE feature_categories SET logo_url = '/admin/assets/images/aim-cache.png' WHERE slug = 'aim-cache' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
                         UPDATE feature_categories SET logo_url = '/admin/assets/images/modskin.png' WHERE slug LIKE '%modskin%' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
                     ");
+                } catch (\Throwable $e) {}
+
+                // Cập nhật các cột mật khẩu file và file config đi kèm
+                try {
+                    $this->pdo->exec("ALTER TABLE features ADD COLUMN file_password VARCHAR(255) DEFAULT NULL;");
+                } catch (\Throwable $e) {}
+                try {
+                    $this->pdo->exec("ALTER TABLE features ADD COLUMN config_file_id INT DEFAULT NULL;");
+                } catch (\Throwable $e) {}
+                try {
+                    $this->pdo->exec("ALTER TABLE file_records ADD COLUMN file_password VARCHAR(255) DEFAULT NULL;");
+                } catch (\Throwable $e) {}
+                try {
+                    $this->pdo->exec("ALTER TABLE file_records ADD COLUMN config_file_id INT DEFAULT NULL;");
                 } catch (\Throwable $e) {}
             } catch (\Throwable $e) {}
         } catch (\PDOException $e) {

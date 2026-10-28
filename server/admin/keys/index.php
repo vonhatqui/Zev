@@ -1,6 +1,6 @@
 <?php
 /**
- * ZEV Admin — Quản lý Key: Danh sách
+ * ZEV Admin — Quản lý Key
  */
 
 define('ZEV_ROOT', dirname(__DIR__, 2));
@@ -8,62 +8,65 @@ require_once ZEV_ROOT . '/src/helpers.php';
 require_once ZEV_ROOT . '/src/Config/Database.php';
 require_once ZEV_ROOT . '/src/Auth/AdminAuth.php';
 
-use Zev\Auth\AdminAuth;
 use Zev\Config\Database;
+use Zev\Auth\AdminAuth;
 
 AdminAuth::requireLogin();
 
 $db = Database::getInstance();
 
-// Filters
-$search     = sanitizeString($_GET['q'] ?? '', 100);
-$statusFilter = sanitizeString($_GET['status'] ?? '', 20);
-$page       = max(1, (int)($_GET['page'] ?? 1));
-$perPage    = 20;
-$offset     = ($page - 1) * $perPage;
+// Filters & Pagination
+$page         = max(1, (int)($_GET['page'] ?? 1));
+$limit        = 25;
+$offset       = ($page - 1) * $limit;
+$search       = trim($_GET['q'] ?? '');
+$statusFilter = trim($_GET['status'] ?? '');
 
-$where  = ['1=1'];
+$where = ["1=1"];
 $params = [];
 
 if ($search) {
-    $where[]  = 'ak.key_code LIKE ?';
-    $params[] = "%{$search}%";
+    $where[] = "(k.key_code LIKE ? OR k.note LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
 }
 
-if (in_array($statusFilter, ['active','expired','revoked','suspended'])) {
-    $where[]  = 'ak.status = ?';
+if ($statusFilter) {
+    $where[] = "k.status = ?";
     $params[] = $statusFilter;
 }
 
-$whereStr = implode(' AND ', $where);
+$whereClause = implode(' AND ', $where);
 
-$total = $db->fetchOne(
-    "SELECT COUNT(*) as cnt FROM activation_keys ak WHERE {$whereStr}",
-    $params
-)['cnt'];
+// Count
+$countSql = "SELECT COUNT(*) FROM activation_keys k WHERE $whereClause";
+$total = (int)$db->fetchColumn($countSql, $params);
+$totalPages = ceil($total / $limit);
 
-$keys = $db->fetchAll(
-    "SELECT ak.*, 
-            COUNT(db.id) as device_count
-     FROM activation_keys ak
-     LEFT JOIN device_bindings db ON db.key_id = ak.id AND db.is_active = 1
-     WHERE {$whereStr}
-     GROUP BY ak.id
-     ORDER BY ak.created_at DESC
-     LIMIT {$perPage} OFFSET {$offset}",
-    $params
-);
+// Fetch
+$sql = "
+    SELECT 
+        k.id, k.key_code, k.status, k.duration_type, k.duration_days,
+        k.expires_at, k.first_activated_at, k.last_activated_at,
+        k.note, k.created_at,
+        COUNT(d.id) AS device_count
+    FROM activation_keys k
+    LEFT JOIN devices d ON d.key_id = k.id AND d.is_active = 1
+    WHERE $whereClause
+    GROUP BY k.id
+    ORDER BY k.id DESC
+    LIMIT $limit OFFSET $offset
+";
+$keys = $db->fetchAll($sql, $params);
 
-$totalPages = max(1, ceil($total / $perPage));
-
-$pageTitle  = 'Quản lý Key';
+$pageTitle = 'Quản lý Key';
 $activePage = 'keys';
 require_once ZEV_ROOT . '/admin/partials/header.php';
 ?>
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-  <h2 style="font-size:1.15rem; font-weight:700;">🔑 Quản lý Key</h2>
-  <a href="/admin/keys/create.php" class="btn btn-primary">+ Tạo Key mới</a>
+  <h2 style="font-size:1.15rem; font-weight:700;"><i class="fa-solid fa-key" style="color:var(--color-primary); margin-right:8px;"></i> Quản lý Key</h2>
+  <a href="/admin/keys/create.php" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Tạo Key mới</a>
 </div>
 
 <div class="card">
@@ -71,7 +74,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
     <div class="table-toolbar" style="margin:0; width:100%;">
       <form method="GET" style="display:flex; gap:10px; flex:1; flex-wrap:wrap;">
         <div class="search-box">
-          <span class="search-icon">🔍</span>
+          <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
           <input
             type="text"
             name="q"
@@ -83,14 +86,14 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
         </div>
         <select name="status" class="form-control" style="width:160px;" onchange="this.form.submit()">
           <option value="">Tất cả trạng thái</option>
-          <option value="active"    <?= $statusFilter==='active'    ? 'selected' : '' ?>>✅ Hoạt động</option>
-          <option value="expired"   <?= $statusFilter==='expired'   ? 'selected' : '' ?>>⏰ Hết hạn</option>
-          <option value="revoked"   <?= $statusFilter==='revoked'   ? 'selected' : '' ?>>🚫 Thu hồi</option>
-          <option value="suspended" <?= $statusFilter==='suspended' ? 'selected' : '' ?>>⏸️ Tạm khóa</option>
+          <option value="active"    <?= $statusFilter==='active'    ? 'selected' : '' ?>>Hoạt động</option>
+          <option value="expired"   <?= $statusFilter==='expired'   ? 'selected' : '' ?>>Hết hạn</option>
+          <option value="revoked"   <?= $statusFilter==='revoked'   ? 'selected' : '' ?>>Thu hồi</option>
+          <option value="suspended" <?= $statusFilter==='suspended' ? 'selected' : '' ?>>Tạm khóa</option>
         </select>
-        <button type="submit" class="btn btn-secondary">Lọc</button>
+        <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-filter"></i> Lọc</button>
         <?php if ($search || $statusFilter): ?>
-        <a href="/admin/keys/" class="btn btn-secondary">✕ Xóa lọc</a>
+        <a href="/admin/keys/" class="btn btn-secondary"><i class="fa-solid fa-xmark"></i> Xóa lọc</a>
         <?php endif; ?>
       </form>
       <span style="font-size:0.82rem; color:var(--color-text-muted);">Tổng: <strong><?= number_format($total) ?></strong></span>
@@ -98,16 +101,16 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
   </div>
 
   <div class="table-wrap">
-    <table class="data-table">
+    <table>
       <thead>
         <tr>
-          <th>Key Code</th>
+          <th>Mã Key</th>
           <th>Trạng thái</th>
-          <th>Hết hạn</th>
+          <th>Thời hạn</th>
           <th>Thiết bị</th>
-          <th>Lần kích hoạt cuối</th>
-          <th>Tạo lúc</th>
-          <th>Hành động</th>
+          <th>Kích hoạt lần cuối</th>
+          <th>Ngày tạo</th>
+          <th>Thao tác</th>
         </tr>
       </thead>
       <tbody>
@@ -115,7 +118,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
         <tr>
           <td colspan="7">
             <div class="empty-state">
-              <div class="empty-state-icon">🔍</div>
+              <div class="empty-state-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
               <h3>Không tìm thấy key nào</h3>
               <p><?= $search ? 'Thử từ khóa khác' : 'Chưa có key nào được tạo' ?></p>
             </div>
@@ -136,17 +139,17 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
             <span class="badge badge-<?= $displayStatus ?>">
               <?php
                 $statusLabels = [
-                  'active'    => '✅ Hoạt động',
-                  'expired'   => '⏰ Hết hạn',
-                  'revoked'   => '🚫 Thu hồi',
-                  'suspended' => '⏸️ Tạm khóa',
+                  'active'    => 'Hoạt động',
+                  'expired'   => 'Hết hạn',
+                  'revoked'   => 'Thu hồi',
+                  'suspended' => 'Tạm khóa',
                 ];
                 echo $statusLabels[$displayStatus] ?? $displayStatus;
               ?>
             </span>
           </td>
           <td style="font-size:0.85rem; <?= $isExpired ? 'color:var(--color-danger)' : '' ?>">
-            <?= $key['expires_at'] ? date('d/m/Y H:i', strtotime($key['expires_at'])) : '♾️ Vĩnh viễn' ?>
+            <?= $key['expires_at'] ? date('d/m/Y H:i', strtotime($key['expires_at'])) : 'Vĩnh viễn' ?>
           </td>
           <td>
             <span class="badge badge-primary"><?= (int)$key['device_count'] ?> thiết bị</span>
@@ -159,11 +162,11 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
           </td>
           <td>
             <div style="display:flex; gap:6px;">
-              <a href="/admin/keys/detail.php?id=<?= $key['id'] ?>" class="btn btn-secondary btn-sm" title="Chi tiết">👁️</a>
+              <a href="/admin/keys/detail.php?id=<?= $key['id'] ?>" class="btn btn-secondary btn-sm" title="Chi tiết"><i class="fa-solid fa-eye"></i></a>
               <?php if ($displayStatus === 'active'): ?>
-              <button onclick="revokeKey(<?= $key['id'] ?>, '<?= htmlspecialchars($key['key_code']) ?>')" class="btn btn-danger btn-sm" title="Thu hồi">🚫</button>
+              <button onclick="revokeKey(<?= $key['id'] ?>, '<?= htmlspecialchars($key['key_code']) ?>')" class="btn btn-danger btn-sm" title="Thu hồi"><i class="fa-solid fa-ban"></i></button>
               <?php elseif ($displayStatus === 'revoked' || $displayStatus === 'suspended'): ?>
-              <button onclick="restoreKey(<?= $key['id'] ?>)" class="btn btn-success btn-sm" title="Mở khóa">✅</button>
+              <button onclick="restoreKey(<?= $key['id'] ?>)" class="btn btn-success btn-sm" title="Mở khóa"><i class="fa-solid fa-unlock"></i></button>
               <?php endif; ?>
             </div>
           </td>
@@ -199,8 +202,8 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 <div class="modal-overlay" id="revokeModal">
   <div class="modal">
     <div class="modal-header">
-      <h3 class="modal-title">🚫 Thu hồi Key</h3>
-      <button class="modal-close" onclick="closeModal('revokeModal')">✕</button>
+      <h3 class="modal-title"><i class="fa-solid fa-ban" style="color:var(--color-danger); margin-right:6px;"></i> Thu hồi Key</h3>
+      <button class="modal-close" onclick="closeModal('revokeModal')">&times;</button>
     </div>
     <div class="modal-body">
       <p>Bạn có chắc muốn <strong>thu hồi</strong> key <code id="revokeKeyCode"></code>?</p>
@@ -237,10 +240,10 @@ async function confirmRevoke() {
   });
   const data = await resp.json();
   if (data.success) {
-    showToast("✅ Đã thu hồi key thành công", "success");
+    showToast("Đã thu hồi key thành công", "success");
     setTimeout(() => location.reload(), 1000);
   } else {
-    showToast("❌ " + data.message, "error");
+    showToast(data.message, "error");
   }
   closeModal("revokeModal");
 }
@@ -254,10 +257,10 @@ async function restoreKey(id) {
   });
   const data = await resp.json();
   if (data.success) {
-    showToast("✅ Đã mở khóa key", "success");
+    showToast("Đã mở khóa key", "success");
     setTimeout(() => location.reload(), 1000);
   } else {
-    showToast("❌ " + data.message, "error");
+    showToast(data.message, "error");
   }
 }
 </script>';
