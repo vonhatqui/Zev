@@ -1,0 +1,8 @@
+# Ngăn chặn thực thi script trong thư mục uploads
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|cgi|pl|exe)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Cho phép download file
+Options -Indexes

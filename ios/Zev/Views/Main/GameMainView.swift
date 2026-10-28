@@ -228,6 +228,9 @@ struct GameMainView: View {
                     }
                     .padding(.horizontal, 16)
                 }
+                .refreshable {
+                    loadCategoriesAndFeatures()
+                }
             }
             
             // MARK: - Patching Progress Overlay
@@ -615,7 +618,10 @@ struct GameMainView: View {
                     self.isLoading = false
                 }
             } catch {
-                // Fallback nạp danh mục mặc định theo đúng thiết kế user
+                #if DEBUG
+                print("[ZEV API] Fetch categories/features error: \(error)")
+                #endif
+                // Fallback nạp danh mục mặc định theo đúng thiết kế user nếu server lỗi kết nối
                 await MainActor.run {
                     self.categories = defaultFallbackCategories(gameId: game.id)
                     self.features = defaultFallbackFeatures()

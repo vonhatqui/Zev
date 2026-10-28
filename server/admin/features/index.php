@@ -75,70 +75,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $displayName)));
         }
 
+        $selectedFileId = isset($_POST['file_id']) ? (int)$_POST['file_id'] : -1;
         $uploadedFileId = null;
 
         // Xử lý upload file mới nếu có
-        if (isset($_FILES['feature_file']) && $_FILES['feature_file']['error'] === UPLOAD_ERR_OK) {
-            $fileObj   = $_FILES['feature_file'];
-            $origName  = basename($fileObj['name']);
-            $fileExt   = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-            
-            // Cho phép các đuôi file .3105, bytes, gzip, unityfs, json, zip, config, dat
-            $allowedExts = ['3105', 'bytes', 'gzip', 'unityfs', 'json', 'plist', 'zip', 'dat', 'bin', 'config', 'txt'];
-
-            if (!in_array($fileExt, $allowedExts)) {
-                $errorMsg = "Định dạng file không hợp lệ. Chỉ chấp nhận: " . implode(', ', $allowedExts);
+        if (isset($_FILES['feature_file']) && $_FILES['feature_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['feature_file']['error'] !== UPLOAD_ERR_OK) {
+                $uploadErrors = [
+                    UPLOAD_ERR_INI_SIZE   => 'Dung lượng file vượt quá giới hạn của PHP (upload_max_filesize). Vui lòng tăng giới hạn trên cPanel hoặc upload qua trang Quản lý File.',
+                    UPLOAD_ERR_FORM_SIZE  => 'Dung lượng file vượt quá giới hạn form.',
+                    UPLOAD_ERR_PARTIAL    => 'File chỉ mới được tải lên một phần.',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Thiếu thư mục tạm thời trên máy chủ.',
+                    UPLOAD_ERR_CANT_WRITE => 'Không thể ghi file vào ổ đĩa máy chủ.',
+                    UPLOAD_ERR_EXTENSION  => 'Quá trình tải lên bị chặn bởi tiện ích mở rộng PHP.',
+                ];
+                $errorMsg = $uploadErrors[$_FILES['feature_file']['error']] ?? 'Lỗi tải lên file (Mã lỗi: ' . $_FILES['feature_file']['error'] . ')';
             } else {
-                $uploadDir = ZEV_ROOT . '/uploads/files/';
-                if (!is_dir($uploadDir)) {
-                    @mkdir($uploadDir, 0755, true);
-                }
+                $fileObj   = $_FILES['feature_file'];
+                $origName  = basename($fileObj['name']);
+                $fileExt   = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                
+                // Cho phép các đuôi file .3105, bytes, gzip, unityfs, json, zip, config, dat
+                $allowedExts = ['3105', 'bytes', 'gzip', 'unityfs', 'json', 'plist', 'zip', 'dat', 'bin', 'config', 'txt', 'dylib', 'deb'];
 
-                $storageName = 'zev_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $fileExt;
-                $targetFile  = $uploadDir . $storageName;
-
-                if (move_uploaded_file($fileObj['tmp_name'], $targetFile)) {
-                    $fileSize = filesize($targetFile);
-                    $fileHash = hash_file('sha256', $targetFile);
-
-                    $uploadedFileId = $db->insert("
-                        INSERT INTO file_records (original_name, display_name, stored_filename, file_path, file_size, mime_type, checksum_sha256, game_id, target_path, status, uploaded_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())
-                    ", [
-                        $origName, $displayName, $storageName, $storageName, $fileSize, $fileExt, $fileHash, $selectedGameId, $targetPath
-                    ]);
-                    
-                    // Nếu đã upload file thành công, tự động chuyển status sang ready
-                    $status = 'ready';
+                if (!in_array($fileExt, $allowedExts)) {
+                    $errorMsg = "Định dạng file không hợp lệ. Chỉ chấp nhận: " . implode(', ', $allowedExts);
                 } else {
-                    $errorMsg = "Không thể lưu file trên máy chủ. Vui lòng kiểm tra quyền thư mục uploads/.";
+                    $uploadDir = ZEV_ROOT . '/uploads/files/';
+                    if (!is_dir($uploadDir)) {
+                        @mkdir($uploadDir, 0755, true);
+                    }
+
+                    $storageName = 'zev_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $fileExt;
+                    $targetFile  = $uploadDir . $storageName;
+
+                    if (move_uploaded_file($fileObj['tmp_name'], $targetFile)) {
+                        $fileSize = filesize($targetFile);
+                        $fileHash = hash_file('sha256', $targetFile);
+
+                        $uploadedFileId = $db->insert("
+                            INSERT INTO file_records (original_name, display_name, stored_filename, file_path, file_size, mime_type, checksum_sha256, game_id, target_path, status, uploaded_at, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())
+                        ", [
+                            $origName, $displayName, $storageName, $storageName, $fileSize, $fileExt, $fileHash, $selectedGameId, $targetPath
+                        ]);
+                        
+                        $status = 'ready';
+                    } else {
+                        $errorMsg = "Không thể lưu file trên máy chủ. Vui lòng kiểm tra quyền thư mục uploads/.";
+                    }
                 }
             }
         }
 
         if (empty($errorMsg)) {
-            if ($featureId > 0) {
-                // Sửa feature hiện có
-                if ($uploadedFileId) {
-                    $db->execute("
-                        UPDATE features 
-                        SET category_id = ?, display_name = ?, slug = ?, description = ?, status = ?, file_id = ?, preview_url = ?, sort_order = ?, updated_at = NOW()
-                        WHERE id = ?
-                    ", [$categoryId, $displayName, $slug, $description, $status, $uploadedFileId, $previewUrl, $sortOrder, $featureId]);
-                } else {
-                    $db->execute("
-                        UPDATE features 
-                        SET category_id = ?, display_name = ?, slug = ?, description = ?, status = ?, preview_url = ?, sort_order = ?, updated_at = NOW()
-                        WHERE id = ?
-                    ", [$categoryId, $displayName, $slug, $description, $status, $previewUrl, $sortOrder, $featureId]);
+            // Xác định file_id cuối cùng
+            if ($uploadedFileId) {
+                $finalFileId = $uploadedFileId;
+            } elseif ($selectedFileId > 0) {
+                $finalFileId = $selectedFileId;
+                if ($status === 'unsupported' || $status === 'no_file') {
+                    $status = 'ready';
                 }
+            } elseif ($selectedFileId === 0) {
+                $finalFileId = null; // Gỡ file
+                if ($status === 'ready') {
+                    $status = 'unsupported';
+                }
+            } else {
+                // Giữ nguyên file cũ nếu không thay đổi
+                $existing = $featureId > 0 ? $db->fetchOne("SELECT file_id FROM features WHERE id = ?", [$featureId]) : null;
+                $finalFileId = $existing['file_id'] ?? null;
+            }
+
+            if ($featureId > 0) {
+                $db->execute("
+                    UPDATE features 
+                    SET category_id = ?, display_name = ?, slug = ?, description = ?, status = ?, file_id = ?, preview_url = ?, sort_order = ?, updated_at = NOW()
+                    WHERE id = ?
+                ", [$categoryId, $displayName, $slug, $description, $status, $finalFileId, $previewUrl, $sortOrder, $featureId]);
                 $successMsg = "Đã cập nhật tính năng: {$displayName}";
             } else {
-                // Tạo mới feature
                 $db->execute("
                     INSERT INTO features (category_id, slug, display_name, description, status, file_id, preview_url, sort_order, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-                ", [$categoryId, $slug, $displayName, $description, $status, $uploadedFileId, $previewUrl, $sortOrder]);
+                ", [$categoryId, $slug, $displayName, $description, $status, $finalFileId, $previewUrl, $sortOrder]);
                 $successMsg = "Đã thêm tính năng mới: {$displayName}";
             }
         }
@@ -182,6 +203,14 @@ if (!empty($categories)) {
         $featuresByCat[$f['category_id']][] = $f;
     }
 }
+
+// Lấy danh sách toàn bộ file đã upload để cho phép gán trực tiếp vào chức năng
+$allFiles = $db->fetchAll("
+    SELECT id, display_name, original_name, file_size 
+    FROM file_records 
+    WHERE status = 'active' 
+    ORDER BY id DESC
+");
 
 $pageTitle  = 'Quản lý Chức năng & File';
 $activePage = 'features';
@@ -403,10 +432,24 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
       </div>
 
       <div class="form-group">
-        <label class="form-label">Nạp File (.3105, .bytes, .gzip, .unityfs, .json, .zip, .config)</label>
-        <input type="file" name="feature_file" id="feat_file" class="form-control" accept=".3105,.bytes,.gzip,.unityfs,.json,.plist,.zip,.dat,.bin,.config,.txt">
+        <label class="form-label">Chọn File Có Sẵn (Từ Kho File Server)</label>
+        <select name="file_id" id="feat_file_id" class="form-control">
+          <option value="-1">-- Giữ nguyên file hiện tại --</option>
+          <option value="0">❌ Không gán file (Chưa hỗ trợ)</option>
+          <?php foreach ($allFiles as $fl): ?>
+            <option value="<?= $fl['id'] ?>">📦 <?= htmlspecialchars($fl['display_name']) ?> (<?= htmlspecialchars($fl['original_name']) ?> - <?= number_format($fl['file_size']/1024, 1) ?> KB)</option>
+          <?php endforeach; ?>
+        </select>
         <div style="font-size:0.75rem; color:var(--color-text-muted); margin-top:4px;">
-          Để trống nếu muốn giữ nguyên file cũ hoặc chưa có file.
+          Chọn file đã tải lên trước đó trên máy chủ, HOẶC nạp file mới ở ô bên dưới.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nạp File Mới (.3105, .bytes, .gzip, .unityfs, .json, .zip, .config)</label>
+        <input type="file" name="feature_file" id="feat_file" class="form-control" accept=".3105,.bytes,.gzip,.unityfs,.json,.plist,.zip,.dat,.bin,.config,.txt,.dylib,.deb">
+        <div style="font-size:0.75rem; color:var(--color-text-muted); margin-top:4px;">
+          Để trống nếu muốn giữ nguyên hoặc đã chọn file có sẵn ở trên.
         </div>
       </div>
 
@@ -471,6 +514,8 @@ function openFeatureModal() {
   document.getElementById('feat_display_name').value = '';
   document.getElementById('feat_slug').value = '';
   document.getElementById('feat_status').value = 'unsupported';
+  document.getElementById('feat_file_id').value = '0';
+  document.getElementById('feat_file').value = '';
   document.getElementById('feat_preview_url').value = '';
   document.getElementById('feat_target_path').value = 'Documents/';
   document.getElementById('feat_sort_order').value = '1';
@@ -484,6 +529,8 @@ function editFeature(f) {
   document.getElementById('feat_display_name').value = f.display_name || '';
   document.getElementById('feat_slug').value = f.slug || '';
   document.getElementById('feat_status').value = f.status || 'unsupported';
+  document.getElementById('feat_file_id').value = f.file_id ? f.file_id : '0';
+  document.getElementById('feat_file').value = '';
   document.getElementById('feat_preview_url').value = f.preview_url || '';
   document.getElementById('feat_target_path').value = f.target_path || 'Documents/';
   document.getElementById('feat_sort_order').value = f.sort_order || '1';

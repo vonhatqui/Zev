@@ -40,6 +40,7 @@ class Database
                 \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 \PDO::ATTR_EMULATE_PREPARES   => false,
+                \PDO::ATTR_STRINGIFY_FETCHES  => false,
                 \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
             ];
 
@@ -67,6 +68,25 @@ class Database
                         KEY `idx_rate_lookup` (`identifier`, `endpoint`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
                 ");
+                // Đảm bảo có danh mục menu-project cho game_id = 1
+                try {
+                    $chkCat = $this->pdo->query("SELECT id FROM feature_categories WHERE game_id = 1 AND slug = 'menu-project'")->fetch();
+                    if (!$chkCat) {
+                        $this->pdo->exec("
+                            INSERT INTO feature_categories (game_id, slug, display_name, logo_url, description, sort_order, is_active)
+                            VALUES (1, 'menu-project', 'Menu Project', '/admin/assets/images/menu-project.png', 'Menu hack và script tổng hợp', 1, 1);
+                        ");
+                        $menuCatId = (int)$this->pdo->lastInsertId();
+                        if ($menuCatId > 0) {
+                            $this->pdo->exec("
+                                INSERT INTO features (category_id, slug, display_name, description, status, sort_order, is_active)
+                                VALUES 
+                                ({$menuCatId}, 'menu-v1', 'Menu V1', 'Menu cơ bản', 'unsupported', 1, 1),
+                                ({$menuCatId}, 'menu-cheatexternal', 'Menu CheatExternal', 'Menu Cheat External', 'unsupported', 2, 1);
+                            ");
+                        }
+                    }
+                } catch (\Throwable $e) {}
                 // Tự động chuẩn hóa đường dẫn ảnh sang máy chủ nội bộ để load tức thì
                 try {
                     $this->pdo->exec("

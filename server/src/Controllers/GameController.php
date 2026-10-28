@@ -27,6 +27,12 @@ class GameController
              FROM games WHERE is_active = 1 ORDER BY sort_order ASC"
         );
 
+        foreach ($games as &$g) {
+            $g['id'] = (int)$g['id'];
+            $g['sort_order'] = (int)$g['sort_order'];
+        }
+        unset($g);
+
         jsonResponse(200, 'success', 'OK', ['games' => $games]);
     }
 
@@ -44,6 +50,8 @@ class GameController
             jsonResponse(404, 'error', 'Game không tồn tại.');
         }
 
+        $game['id'] = (int)$game['id'];
+
         $categories = $this->db->fetchAll(
             "SELECT id, slug, display_name, logo_url, description, sort_order 
              FROM feature_categories 
@@ -52,8 +60,10 @@ class GameController
             [$gameId]
         );
 
-        // Đếm số tính năng ready trong mỗi category
+        // Đếm số tính năng ready trong mỗi category và chuẩn hóa kiểu số
         foreach ($categories as &$cat) {
+            $cat['id'] = (int)$cat['id'];
+            $cat['sort_order'] = (int)$cat['sort_order'];
             $counts = $this->db->fetchOne(
                 "SELECT 
                     COUNT(*) as total,
@@ -64,6 +74,7 @@ class GameController
             $cat['feature_count'] = (int) ($counts['total'] ?? 0);
             $cat['ready_count']   = (int) ($counts['ready'] ?? 0);
         }
+        unset($cat);
 
         jsonResponse(200, 'success', 'OK', [
             'game'       => $game,
@@ -97,6 +108,16 @@ class GameController
              ORDER BY fc.sort_order ASC, f.sort_order ASC",
             [$gameId]
         );
+
+        // Chuẩn hóa kiểu dữ liệu cho Swift API
+        foreach ($features as &$f) {
+            $f['id'] = (int)$f['id'];
+            $f['category_id'] = (int)$f['category_id'];
+            $f['sort_order'] = (int)$f['sort_order'];
+            $f['file_id'] = $f['file_id'] !== null ? (int)$f['file_id'] : null;
+            $f['file_size'] = $f['file_size'] !== null ? (int)$f['file_size'] : null;
+        }
+        unset($f);
 
         jsonResponse(200, 'success', 'OK', ['features' => $features]);
     }

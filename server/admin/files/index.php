@@ -26,7 +26,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_upload'])) {
     $targetPath  = sanitizeString($_POST['target_path'] ?? 'Documents/');
 
     $file = $_FILES['file_upload'];
-    if ($file['error'] === UPLOAD_ERR_OK && !empty($title)) {
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $uploadErrors = [
+            UPLOAD_ERR_INI_SIZE   => 'Dung lượng file vượt quá giới hạn của PHP (upload_max_filesize). Vui lòng tăng giới hạn trên cPanel.',
+            UPLOAD_ERR_FORM_SIZE  => 'Dung lượng file vượt quá giới hạn form.',
+            UPLOAD_ERR_PARTIAL    => 'File chỉ mới được tải lên một phần.',
+            UPLOAD_ERR_NO_FILE    => 'Vui lòng chọn file cần tải lên.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Thiếu thư mục tạm thời trên máy chủ.',
+            UPLOAD_ERR_CANT_WRITE => 'Không thể ghi file vào ổ đĩa máy chủ.',
+            UPLOAD_ERR_EXTENSION  => 'Quá trình tải lên bị chặn bởi tiện ích mở rộng PHP.',
+        ];
+        $errorMsg = $uploadErrors[$file['error']] ?? 'Lỗi tải lên file (Mã: ' . $file['error'] . ')';
+    } elseif (empty($title)) {
+        $errorMsg = 'Vui lòng nhập tiêu đề cho file.';
+    } else {
         $origName = basename($file['name']);
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
         $allowedExts = ['3105', 'bytes', 'gzip', 'unityfs', 'zip', 'dylib', 'deb', 'json', 'plist', 'txt', 'ipa', 'dat', 'bin', 'config'];
@@ -53,13 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_upload'])) {
                     $title, $origName, $storageName, $storageName, $fileSize, $fileHash, $ext, $gameId, $version, $targetPath, $description
                 ]);
 
-                $successMsg = "Tải lên file thành công: " . htmlspecialchars($origName);
+                $successMsg = "Tải lên file thành công: " . htmlspecialchars($origName) . " — Bạn có thể vào mục Quản lý Chức năng để gắn file này.";
             } else {
-                $errorMsg = "Không thể lưu file trên máy chủ. Vui lòng kiểm tra quyền thư mục.";
+                $errorMsg = "Không thể lưu file trên máy chủ. Vui lòng kiểm tra quyền ghi thư mục uploads/files/.";
             }
         }
-    } else {
-        $errorMsg = "Vui lòng chọn file hợp lệ và nhập tiêu đề.";
     }
 }
 
@@ -169,7 +180,10 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
               <td style="padding: 14px 16px; font-size: 0.85rem; color: var(--color-text-muted);">
                 <?= date('d/m/Y H:i', strtotime($f['created_at'])) ?>
               </td>
-              <td style="padding: 14px 16px; text-align: right;">
+              <td style="padding: 14px 16px; text-align: right; white-space: nowrap;">
+                <a href="../features/?game_id=<?= $f['game_id'] ?: 1 ?>" class="btn btn-sm" style="background: rgba(108, 99, 255, 0.2); color: #a78bfa; margin-right: 6px;">
+                  🎯 Gán Chức Năng
+                </a>
                 <a href="?delete=<?= $f['id'] ?>" onclick="return confirm('Bạn chắc chắn muốn xoá file này?')" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
                   🗑️ Xoá
                 </a>

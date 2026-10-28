@@ -10,6 +10,50 @@ struct APIResponse<T: Decodable>: Decodable {
 
 struct EmptyData: Decodable {}
 
+// MARK: - Flexible Decoding Helpers (Khắc phục hoàn toàn lệch kiểu Int/String từ MySQL và SQLite)
+
+extension KeyedDecodingContainer {
+    func decodeFlexibleInt(forKey key: Key) throws -> Int {
+        if let val = try? decode(Int.self, forKey: key) {
+            return val
+        }
+        if let str = try? decode(String.self, forKey: key), let val = Int(str.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return val
+        }
+        if let dbl = try? decode(Double.self, forKey: key) {
+            return Int(dbl)
+        }
+        return 0
+    }
+    
+    func decodeFlexibleIntIfPresent(forKey key: Key) -> Int? {
+        if let val = try? decodeIfPresent(Int.self, forKey: key) {
+            return val
+        }
+        if let str = try? decodeIfPresent(String.self, forKey: key), let val = Int(str.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return val
+        }
+        if let dbl = try? decodeIfPresent(Double.self, forKey: key) {
+            return Int(dbl)
+        }
+        return nil
+    }
+    
+    func decodeFlexibleBool(forKey key: Key) -> Bool {
+        if let val = try? decode(Bool.self, forKey: key) {
+            return val
+        }
+        if let intVal = try? decode(Int.self, forKey: key) {
+            return intVal == 1
+        }
+        if let strVal = try? decode(String.self, forKey: key) {
+            let s = strVal.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return s == "1" || s == "true"
+        }
+        return false
+    }
+}
+
 // MARK: - Activation Key
 
 struct ActivationResult: Decodable {
@@ -22,6 +66,21 @@ struct KeyInfo: Decodable {
     let status: String
     let expiresAt: String?
     let isLifetime: Bool
+    
+    init(code: String, status: String, expiresAt: String?, isLifetime: Bool) {
+        self.code = code
+        self.status = status
+        self.expiresAt = expiresAt
+        self.isLifetime = isLifetime
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.code = (try? c.decode(String.self, forKey: .code)) ?? ""
+        self.status = (try? c.decode(String.self, forKey: .status)) ?? "active"
+        self.expiresAt = try? c.decodeIfPresent(String.self, forKey: .expiresAt)
+        self.isLifetime = c.decodeFlexibleBool(forKey: .isLifetime)
+    }
     
     enum CodingKeys: String, CodingKey {
         case code, status
@@ -116,6 +175,27 @@ struct Game: Decodable, Identifiable {
     let description: String?
     let sortOrder: Int
     
+    init(id: Int, bundleId: String, displayName: String, shortName: String, logoUrl: String?, description: String?, sortOrder: Int) {
+        self.id = id
+        self.bundleId = bundleId
+        self.displayName = displayName
+        self.shortName = shortName
+        self.logoUrl = logoUrl
+        self.description = description
+        self.sortOrder = sortOrder
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeFlexibleInt(forKey: .id)
+        self.bundleId = (try? c.decode(String.self, forKey: .bundleId)) ?? ""
+        self.displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
+        self.shortName = (try? c.decode(String.self, forKey: .shortName)) ?? ""
+        self.logoUrl = try? c.decodeIfPresent(String.self, forKey: .logoUrl)
+        self.description = try? c.decodeIfPresent(String.self, forKey: .description)
+        self.sortOrder = (try? c.decodeFlexibleInt(forKey: .sortOrder)) ?? 0
+    }
+    
     var isInstalled: Bool {
         GameDetectionService.shared.checkInstallation(bundleId: bundleId).isInstalled
     }
@@ -126,11 +206,12 @@ struct Game: Decodable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case id
-        case bundleId   = "bundle_id"
+        case bundleId    = "bundle_id"
         case displayName = "display_name"
         case shortName   = "short_name"
         case logoUrl     = "logo_url"
-        case description, sortOrder = "sort_order"
+        case description
+        case sortOrder   = "sort_order"
     }
 }
 
@@ -144,6 +225,17 @@ struct CategoriesResponse: Decodable {
 struct GameBrief: Decodable {
     let id: Int
     let displayName: String
+    
+    init(id: Int, displayName: String) {
+        self.id = id
+        self.displayName = displayName
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeFlexibleInt(forKey: .id)
+        self.displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
+    }
     
     enum CodingKeys: String, CodingKey {
         case id, displayName = "display_name"
@@ -160,11 +252,35 @@ struct FeatureCategory: Decodable, Identifiable {
     let featureCount: Int?
     let readyCount: Int?
     
+    init(id: Int, slug: String, displayName: String, logoUrl: String?, description: String?, sortOrder: Int, featureCount: Int? = nil, readyCount: Int? = nil) {
+        self.id = id
+        self.slug = slug
+        self.displayName = displayName
+        self.logoUrl = logoUrl
+        self.description = description
+        self.sortOrder = sortOrder
+        self.featureCount = featureCount
+        self.readyCount = readyCount
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeFlexibleInt(forKey: .id)
+        self.slug = (try? c.decode(String.self, forKey: .slug)) ?? ""
+        self.displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
+        self.logoUrl = try? c.decodeIfPresent(String.self, forKey: .logoUrl)
+        self.description = try? c.decodeIfPresent(String.self, forKey: .description)
+        self.sortOrder = (try? c.decodeFlexibleInt(forKey: .sortOrder)) ?? 0
+        self.featureCount = c.decodeFlexibleIntIfPresent(forKey: .featureCount)
+        self.readyCount = c.decodeFlexibleIntIfPresent(forKey: .readyCount)
+    }
+    
     enum CodingKeys: String, CodingKey {
         case id, slug
         case displayName  = "display_name"
         case logoUrl      = "logo_url"
-        case description, sortOrder = "sort_order"
+        case description
+        case sortOrder    = "sort_order"
         case featureCount = "feature_count"
         case readyCount   = "ready_count"
     }
@@ -192,8 +308,43 @@ struct Feature: Decodable, Identifiable {
     let targetPath: String?
     let checksumSha256: String?
     
+    init(id: Int, slug: String, displayName: String, description: String?, status: FeatureStatus, fileId: Int?, fileName: String?, previewUrl: String?, categoryId: Int?, categoryName: String?, fileVersion: String?, fileSize: Int?, targetPath: String?, checksumSha256: String?) {
+        self.id = id
+        self.slug = slug
+        self.displayName = displayName
+        self.description = description
+        self.status = status
+        self.fileId = fileId
+        self.fileName = fileName
+        self.previewUrl = previewUrl
+        self.categoryId = categoryId
+        self.categoryName = categoryName
+        self.fileVersion = fileVersion
+        self.fileSize = fileSize
+        self.targetPath = targetPath
+        self.checksumSha256 = checksumSha256
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeFlexibleInt(forKey: .id)
+        self.slug = (try? c.decode(String.self, forKey: .slug)) ?? ""
+        self.displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
+        self.description = try? c.decodeIfPresent(String.self, forKey: .description)
+        self.status = (try? c.decode(FeatureStatus.self, forKey: .status)) ?? .unsupported
+        self.fileId = c.decodeFlexibleIntIfPresent(forKey: .fileId)
+        self.fileName = try? c.decodeIfPresent(String.self, forKey: .fileName)
+        self.previewUrl = try? c.decodeIfPresent(String.self, forKey: .previewUrl)
+        self.categoryId = c.decodeFlexibleIntIfPresent(forKey: .categoryId)
+        self.categoryName = try? c.decodeIfPresent(String.self, forKey: .categoryName)
+        self.fileVersion = try? c.decodeIfPresent(String.self, forKey: .fileVersion)
+        self.fileSize = c.decodeFlexibleIntIfPresent(forKey: .fileSize)
+        self.targetPath = try? c.decodeIfPresent(String.self, forKey: .targetPath)
+        self.checksumSha256 = try? c.decodeIfPresent(String.self, forKey: .checksumSha256)
+    }
+    
     var hasFile: Bool {
-        fileId != nil && status == .ready
+        fileId != nil && (status == .ready || status == .loading)
     }
     
     enum CodingKeys: String, CodingKey {
@@ -218,6 +369,12 @@ enum FeatureStatus: String, Decodable {
     case noFile        = "no_file"
     case incompatible  = "incompatible"
     case error         = "error"
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = (try? container.decode(String.self)) ?? ""
+        self = FeatureStatus(rawValue: raw) ?? .unsupported
+    }
     
     var displayText: String {
         switch self {
@@ -245,6 +402,29 @@ struct FileMetadata: Decodable {
     let status: String
     let gameName: String?
     
+    init(id: Int, displayName: String, fileSize: Int, mimeType: String?, checksumSha256: String, fileVersion: String?, status: String, gameName: String?) {
+        self.id = id
+        self.displayName = displayName
+        self.fileSize = fileSize
+        self.mimeType = mimeType
+        self.checksumSha256 = checksumSha256
+        self.fileVersion = fileVersion
+        self.status = status
+        self.gameName = gameName
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeFlexibleInt(forKey: .id)
+        self.displayName = (try? c.decode(String.self, forKey: .displayName)) ?? ""
+        self.fileSize = (try? c.decodeFlexibleInt(forKey: .fileSize)) ?? 0
+        self.mimeType = try? c.decodeIfPresent(String.self, forKey: .mimeType)
+        self.checksumSha256 = (try? c.decode(String.self, forKey: .checksumSha256)) ?? ""
+        self.fileVersion = try? c.decodeIfPresent(String.self, forKey: .fileVersion)
+        self.status = (try? c.decode(String.self, forKey: .status)) ?? "active"
+        self.gameName = try? c.decodeIfPresent(String.self, forKey: .gameName)
+    }
+    
     enum CodingKeys: String, CodingKey {
         case id, status
         case displayName    = "display_name"
@@ -262,10 +442,25 @@ struct DownloadTokenResponse: Decodable {
     let fileSize: Int
     let checksum: String
     
+    init(downloadUrl: String, expiresAt: String, fileSize: Int, checksum: String) {
+        self.downloadUrl = downloadUrl
+        self.expiresAt = expiresAt
+        self.fileSize = fileSize
+        self.checksum = checksum
+    }
+    
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.downloadUrl = (try? c.decode(String.self, forKey: .downloadUrl)) ?? ""
+        self.expiresAt = (try? c.decode(String.self, forKey: .expiresAt)) ?? ""
+        self.fileSize = (try? c.decodeFlexibleInt(forKey: .fileSize)) ?? 0
+        self.checksum = (try? c.decode(String.self, forKey: .checksum)) ?? ""
+    }
+    
     enum CodingKeys: String, CodingKey {
         case downloadUrl = "download_url"
-        case expiresAt  = "expires_at"
-        case fileSize   = "file_size"
+        case expiresAt   = "expires_at"
+        case fileSize    = "file_size"
         case checksum
     }
 }

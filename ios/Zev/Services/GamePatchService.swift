@@ -103,14 +103,14 @@ final class GamePatchService {
             
             // Sao chép file mới vào
             try fm.copyItem(at: tempLocalURL, to: targetDestFile)
+            progressHandler(1.0, "Đã nạp trực tiếp vào container game thành công!")
         } else {
             // Fallback lưu vào thư mục workspace Zev để chia sẻ hoặc nạp qua TrollStore / Filza
             let exportDest = appPatchesDir.appendingPathComponent(originalFilename)
             try? fm.removeItem(at: exportDest)
             try fm.copyItem(at: tempLocalURL, to: exportDest)
+            progressHandler(1.0, "Đã lưu bản vá vào Documents/AppliedPatches thành công!")
         }
-        
-        progressHandler(1.0, "Áp dụng thành công!")
     }
     
     // MARK: - Setup Antiban (sing-box)
