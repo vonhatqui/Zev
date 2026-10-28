@@ -40,10 +40,78 @@ class Database
                 \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 \PDO::ATTR_EMULATE_PREPARES   => false,
+                \PDO::ATTR_STRINGIFY_FETCHES  => false,
                 \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
             ];
 
             $this->pdo = new \PDO($dsn, $db['user'] ?? 'root', $db['password'] ?? '', $options);
+
+            // Tự động khởi tạo bảng MySQL nếu database mới chưa có dữ liệu
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'admins'")->fetch();
+                if (!$check) {
+                    $schemaPath = dirname(__DIR__, 2) . '/database/schema.sql';
+                    if (file_exists($schemaPath)) {
+                        $this->pdo->exec(file_get_contents($schemaPath));
+                    }
+                }
+                // Đảm bảo bảng rate_limits luôn tồn tại
+                $this->pdo->exec("
+                    CREATE TABLE IF NOT EXISTS `rate_limits` (
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `identifier` varchar(128) NOT NULL,
+                        `endpoint` varchar(128) NOT NULL,
+                        `request_count` int(11) NOT NULL DEFAULT 1,
+                        `window_start` datetime NOT NULL,
+                        `blocked_until` datetime DEFAULT NULL,
+                        PRIMARY KEY (`id`),
+                        KEY `idx_rate_lookup` (`identifier`, `endpoint`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                ");
+                // Đảm bảo có danh mục menu-project cho game_id = 1
+                try {
+                    $chkCat = $this->pdo->query("SELECT id FROM feature_categories WHERE game_id = 1 AND slug = 'menu-project'")->fetch();
+                    if (!$chkCat) {
+                        $this->pdo->exec("
+                            INSERT INTO feature_categories (game_id, slug, display_name, logo_url, description, sort_order, is_active)
+                            VALUES (1, 'menu-project', 'Menu Project', '/admin/assets/images/menu-project.png', 'Menu hack và script tổng hợp', 1, 1);
+                        ");
+                        $menuCatId = (int)$this->pdo->lastInsertId();
+                        if ($menuCatId > 0) {
+                            $this->pdo->exec("
+                                INSERT INTO features (category_id, slug, display_name, description, status, sort_order, is_active)
+                                VALUES 
+                                ({$menuCatId}, 'menu-v1', 'Menu V1', 'Menu cơ bản', 'unsupported', 1, 1),
+                                ({$menuCatId}, 'menu-cheatexternal', 'Menu CheatExternal', 'Menu Cheat External', 'unsupported', 2, 1);
+                            ");
+                        }
+                    }
+                } catch (\Throwable $e) {}
+                // Tự động cập nhật logo chính thức theo yêu cầu user
+                try {
+                    $this->pdo->exec("
+                        UPDATE games SET logo_url = 'https://i.ibb.co/7J4qj2kM/IMG-4819.webp' WHERE id = 1 OR bundle_id = 'com.dts.freefireth';
+                        UPDATE games SET logo_url = 'https://i.ibb.co/spHGtVNh/IMG-4818.png' WHERE id = 2 OR bundle_id = 'com.dts.freefiremax';
+                        UPDATE feature_categories SET logo_url = '/admin/assets/images/menu-project.png' WHERE slug = 'menu-project' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
+                        UPDATE feature_categories SET logo_url = '/admin/assets/images/aim-cache.png' WHERE slug = 'aim-cache' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
+                        UPDATE feature_categories SET logo_url = '/admin/assets/images/modskin.png' WHERE slug LIKE '%modskin%' AND (logo_url LIKE '%catbox.moe%' OR logo_url IS NULL OR logo_url = '');
+                    ");
+                } catch (\Throwable $e) {}
+
+                // Cập nhật các cột mật khẩu file và file config đi kèm
+                try {
+                    $this->pdo->exec("ALTER TABLE features ADD COLUMN file_password VARCHAR(255) DEFAULT NULL;");
+                } catch (\Throwable $e) {}
+                try {
+                    $this->pdo->exec("ALTER TABLE features ADD COLUMN config_file_id INT DEFAULT NULL;");
+                } catch (\Throwable $e) {}
+                try {
+                    $this->pdo->exec("ALTER TABLE file_records ADD COLUMN file_password VARCHAR(255) DEFAULT NULL;");
+                } catch (\Throwable $e) {}
+                try {
+                    $this->pdo->exec("ALTER TABLE file_records ADD COLUMN config_file_id INT DEFAULT NULL;");
+                } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {}
         } catch (\PDOException $e) {
             // Nếu không kết nối được MySQL (ví dụ dev local chưa cấu hình MySQL cPanel), fallback sang SQLite
             $sqlitePath = dirname(__DIR__, 2) . '/database/zev.sqlite';
@@ -216,6 +284,15 @@ class Database
                 user_agent TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS rate_limits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                identifier TEXT NOT NULL,
+                endpoint TEXT NOT NULL,
+                request_count INTEGER NOT NULL DEFAULT 1,
+                window_start DATETIME NOT NULL,
+                blocked_until DATETIME DEFAULT NULL
+            );
         ");
 
         // Seed admin user: admin / 1
@@ -236,17 +313,17 @@ class Database
             ('download_token_ttl_seconds', '300', 'TTL download token', 0);
 
             INSERT OR IGNORE INTO games (id, bundle_id, display_name, short_name, logo_url, sort_order) VALUES
-            (1, 'com.dts.freefireth', 'Free Fire Thường', 'FFTH', 'https://files.catbox.moe/kony5d.png', 1),
-            (2, 'com.dts.freefiremax', 'Free Fire MAX', 'FFMAX', 'https://files.catbox.moe/kony5d.png', 2);
+            (1, 'com.dts.freefireth', 'Free Fire Thường', 'FFTH', '/admin/assets/images/logo.png', 1),
+            (2, 'com.dts.freefiremax', 'Free Fire MAX', 'FFMAX', '/admin/assets/images/logo.png', 2);
 
             INSERT OR IGNORE INTO feature_categories (id, game_id, slug, display_name, logo_url, description, sort_order) VALUES
-            (1, 1, 'menu-project', 'Menu Project', 'https://files.catbox.moe/wetz7r.png', 'Menu hack và script tổng hợp', 1),
-            (2, 1, 'aim-cache', 'Aim Cache', 'https://files.catbox.moe/z7c8o6.png', 'Tối ưu ngắm và khóa mục tiêu', 2),
-            (3, 1, 'modskin-ffth', 'Modskin FFTH', 'https://files.catbox.moe/dvyw27.png', 'Mod trang phục và hiệu ứng nhân vật', 3),
+            (1, 1, 'menu-project', 'Menu Project', '/admin/assets/images/menu-project.png', 'Menu hack và script tổng hợp', 1),
+            (2, 1, 'aim-cache', 'Aim Cache', '/admin/assets/images/aim-cache.png', 'Tối ưu ngắm và khóa mục tiêu', 2),
+            (3, 1, 'modskin-ffth', 'Modskin FFTH', '/admin/assets/images/modskin.png', 'Mod trang phục và hiệu ứng nhân vật', 3),
             (4, 1, 'setup-antiban', 'Setup Antiban', '', 'Cấu hình bảo vệ tài khoản qua sing-box', 4),
-            (5, 2, 'menu-project', 'Menu Project', 'https://files.catbox.moe/wetz7r.png', 'Menu hack cho Free Fire MAX', 1),
-            (6, 2, 'aim-cache', 'Aim Cache', 'https://files.catbox.moe/z7c8o6.png', 'Aim Cache cho Free Fire MAX', 2),
-            (7, 2, 'modskin-ffmax', 'Modskin FFMAX', 'https://files.catbox.moe/dvyw27.png', 'Modskin cho Free Fire MAX', 3),
+            (5, 2, 'menu-project', 'Menu Project', '/admin/assets/images/menu-project.png', 'Menu hack cho Free Fire MAX', 1),
+            (6, 2, 'aim-cache', 'Aim Cache', '/admin/assets/images/aim-cache.png', 'Aim Cache cho Free Fire MAX', 2),
+            (7, 2, 'modskin-ffmax', 'Modskin FFMAX', '/admin/assets/images/modskin.png', 'Modskin cho Free Fire MAX', 3),
             (8, 2, 'setup-antiban', 'Setup Antiban', '', 'Cấu hình sing-box cho FFMAX', 4);
 
             INSERT OR IGNORE INTO features (id, category_id, slug, display_name, description, status, sort_order) VALUES

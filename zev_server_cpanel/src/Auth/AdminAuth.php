@@ -134,7 +134,7 @@ class AdminAuth
                  VALUES (?, ?, ?, ?, ?, ?)",
                 [$adminId, $username, $ip, $_SERVER['HTTP_USER_AGENT'] ?? '', (int)$success, $reason]
             );
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {}
     }
 
     /**

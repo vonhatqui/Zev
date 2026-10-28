@@ -1,35 +1,22 @@
-Options -Indexes
-ServerSignature Off
-
-# Rewrite all requests to index.php
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
-
-# Security Headers
-Header always set X-Content-Type-Options "nosniff"
-Header always set X-Frame-Options "DENY"
-Header always set X-XSS-Protection "1; mode=block"
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
-
-# Block access to sensitive files
-<FilesMatch "\.(env|log|sql|json|lock|md|sh|bash)$">
-    Order deny,allow
-    Deny from all
-</FilesMatch>
-
-# Protect config directory
 <IfModule mod_rewrite.c>
-    RewriteRule ^config/ - [F,L]
-    RewriteRule ^src/ - [F,L]
-    RewriteRule ^uploads/ - [F,L]
-    RewriteRule ^database/ - [F,L]
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
-# PHP Settings
-php_flag display_errors Off
-php_value upload_max_filesize 100M
-php_value post_max_size 105M
-php_value max_execution_time 300
-php_value memory_limit 256M
+<FilesMatch "\.(env|log|sql|json|lock|md|sh|bash)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>

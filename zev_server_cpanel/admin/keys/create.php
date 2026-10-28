@@ -51,9 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $generatedKeys[] = $keyCode;
                 $created++;
             } catch (\Throwable $e) {
-                // Key trùng — thử lại (rất hiếm)
+                // Key trùng — thử lại
                 $i--;
-                if ($i < -10) break; // Safety limit
+                if ($i < -10) break;
             }
         }
 
@@ -84,8 +84,8 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 <div style="max-width:640px;">
 
   <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
-    <a href="/admin/keys/" class="btn btn-secondary btn-sm">← Quay lại</a>
-    <h2 style="font-size:1.15rem; font-weight:700;">🔑 Tạo Key mới</h2>
+    <a href="/admin/keys/" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
+    <h2 style="font-size:1.15rem; font-weight:700;"><i class="fa-solid fa-key" style="color:var(--color-primary); margin-right:8px;"></i> Tạo Key mới</h2>
   </div>
 
   <?php if ($message): ?>
@@ -95,14 +95,14 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
   <?php if (!empty($generatedKeys)): ?>
   <div class="card" style="margin-bottom:24px;">
     <div class="card-header">
-      <span class="card-title">✅ Key đã tạo (<?= count($generatedKeys) ?>)</span>
-      <button onclick="copyAllKeys()" class="btn btn-secondary btn-sm">📋 Sao chép tất cả</button>
+      <span class="card-title"><i class="fa-solid fa-circle-check" style="color:var(--color-success); margin-right:6px;"></i> Key đã tạo (<?= count($generatedKeys) ?>)</span>
+      <button onclick="copyAllKeys()" class="btn btn-secondary btn-sm"><i class="fa-solid fa-clipboard"></i> Sao chép tất cả</button>
     </div>
     <div class="card-body" id="keyListDisplay" style="display:flex; flex-direction:column; gap:10px;">
       <?php foreach ($generatedKeys as $k): ?>
-      <div style="display:flex; align-items:center; justify-content:space-between; background:var(--color-surface-2); padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--color-border);">
+      <div style="display:flex; align-items:center; justify-content:space-between; background:var(--color-surface2); padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--color-border);">
         <span class="key-display" onclick="copyText('<?= htmlspecialchars($k) ?>')"><?= htmlspecialchars($k) ?></span>
-        <button class="copy-btn" onclick="copyText('<?= htmlspecialchars($k) ?>')" title="Sao chép">📋</button>
+        <button class="copy-btn" onclick="copyText('<?= htmlspecialchars($k) ?>')" title="Sao chép"><i class="fa-solid fa-clipboard"></i></button>
       </div>
       <?php endforeach; ?>
     </div>
@@ -111,7 +111,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Thông tin Key</span>
+      <span class="card-title"><i class="fa-solid fa-circle-info" style="color:var(--color-primary); margin-right:6px;"></i> Thông tin Key</span>
     </div>
     <div class="card-body">
       <form method="POST">
@@ -136,7 +136,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
             </select>
             <label style="display:flex; align-items:center; gap:8px; font-size:0.875rem; cursor:pointer;">
               <input type="checkbox" name="lifetime" id="lifetimeCheck" onchange="toggleLifetime(this)">
-              <span>♾️ Vĩnh viễn</span>
+              <span><i class="fa-solid fa-infinity"></i> Vĩnh viễn</span>
             </label>
           </div>
           <div id="customDuration" style="display:none; margin-top:10px;">
@@ -150,7 +150,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
         </div>
 
         <div style="display:flex; gap:10px; margin-top:8px;">
-          <button type="submit" class="btn btn-primary">🔑 Tạo Key</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-key"></i> Tạo Key</button>
           <a href="/admin/keys/" class="btn btn-secondary">Hủy</a>
         </div>
       </form>

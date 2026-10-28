@@ -23,7 +23,7 @@ class KeyController
      * POST /api/v1/auth/verify
      * Body: { key, device_id, ios_version, device_model, app_version }
      */
-    public function verify(): never
+    public function verify(): void
     {
         $body = getJsonBody();
 
@@ -150,7 +150,7 @@ class KeyController
      * POST /api/v1/auth/refresh
      * Body: { key, device_id }
      */
-    public function refresh(): never
+    public function refresh(): void
     {
         $body      = getJsonBody();
         $keyCode   = sanitizeString($body['key'] ?? '', 64);
@@ -219,7 +219,7 @@ class KeyController
     /**
      * POST /api/v1/auth/unbind (yêu cầu admin token trong header)
      */
-    public function unbind(): never
+    public function unbind(): void
     {
         // Endpoint này chỉ dùng nội bộ / admin — kiểm tra token
         jsonResponse(403, 'error', 'Chức năng này chỉ thực hiện qua trang quản trị.');
@@ -227,7 +227,7 @@ class KeyController
 
     // ─── Private Helpers ──────────────────────────────────────────────────────
 
-    private function getConfig(string $key, mixed $default = null): mixed
+    private function getConfig(string $key, $default = null)
     {
         $row = $this->db->fetchOne(
             "SELECT config_value FROM app_config WHERE config_key = ? LIMIT 1",
@@ -258,7 +258,7 @@ class KeyController
                  VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [$actorType, $actorId, $action, $targetType, $targetId, $targetLabel, getClientIp()]
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             // Log silently — không ảnh hưởng response
         }
     }

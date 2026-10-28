@@ -23,7 +23,7 @@ class FileController
      * GET /api/v1/files/{id}/metadata
      * Yêu cầu xác thực: Header X-API-Key (key code) + X-Device-ID
      */
-    public function metadata(int $fileId): never
+    public function metadata(int $fileId): void
     {
         $this->requireAuth();
 
@@ -48,7 +48,7 @@ class FileController
      * POST /api/v1/files/{id}/request-download
      * Tạo download token có thời hạn
      */
-    public function requestDownload(int $fileId): never
+    public function requestDownload(int $fileId): void
     {
         [$keyId, $deviceHash] = $this->requireAuth();
 
@@ -86,7 +86,7 @@ class FileController
      * GET /api/v1/files/download/{token}
      * Stream file nếu token còn hạn
      */
-    public function download(string $token): never
+    public function download(string $token): void
     {
         $token = preg_replace('/[^a-zA-Z0-9_\-]/', '', $token);
 

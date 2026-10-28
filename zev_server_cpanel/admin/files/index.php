@@ -26,10 +26,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_upload'])) {
     $targetPath  = sanitizeString($_POST['target_path'] ?? 'Documents/');
 
     $file = $_FILES['file_upload'];
-    if ($file['error'] === UPLOAD_ERR_OK && !empty($title)) {
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $uploadErrors = [
+            UPLOAD_ERR_INI_SIZE   => 'Dung lượng file vượt quá giới hạn của PHP (upload_max_filesize). Vui lòng tăng giới hạn trên cPanel.',
+            UPLOAD_ERR_FORM_SIZE  => 'Dung lượng file vượt quá giới hạn form.',
+            UPLOAD_ERR_PARTIAL    => 'File chỉ mới được tải lên một phần.',
+            UPLOAD_ERR_NO_FILE    => 'Vui lòng chọn file cần tải lên.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Thiếu thư mục tạm thời trên máy chủ.',
+            UPLOAD_ERR_CANT_WRITE => 'Không thể ghi file vào ổ đĩa máy chủ.',
+            UPLOAD_ERR_EXTENSION  => 'Quá trình tải lên bị chặn bởi tiện ích mở rộng PHP.',
+        ];
+        $errorMsg = $uploadErrors[$file['error']] ?? 'Lỗi tải lên file (Mã: ' . $file['error'] . ')';
+    } elseif (empty($title)) {
+        $errorMsg = 'Vui lòng nhập tiêu đề cho file.';
+    } else {
         $origName = basename($file['name']);
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-        $allowedExts = ['3105', 'bytes', 'gzip', 'unityfs', 'zip', 'dylib', 'deb', 'json', 'plist', 'txt', 'ipa', 'dat', 'bin', 'config'];
+        $allowedExts = ['3105', 'bytes', 'gzip', 'unityfs', 'zip', 'dylib', 'deb', 'json', 'plist', 'txt', 'ipa', 'dat', 'bin', 'config', 'dll'];
 
         if (!in_array($ext, $allowedExts)) {
             $errorMsg = "Định dạng file không được hỗ trợ (chấp nhận: " . implode(', ', $allowedExts) . ")";
@@ -53,13 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_upload'])) {
                     $title, $origName, $storageName, $storageName, $fileSize, $fileHash, $ext, $gameId, $version, $targetPath, $description
                 ]);
 
-                $successMsg = "Tải lên file thành công: " . htmlspecialchars($origName);
+                $successMsg = "Tải lên file thành công: " . htmlspecialchars($origName) . " — Bạn có thể vào mục Quản lý Bản Vá để gán file này.";
             } else {
-                $errorMsg = "Không thể lưu file trên máy chủ. Vui lòng kiểm tra quyền thư mục.";
+                $errorMsg = "Không thể lưu file trên máy chủ. Vui lòng kiểm tra quyền ghi thư mục uploads/files/.";
             }
         }
-    } else {
-        $errorMsg = "Vui lòng chọn file hợp lệ và nhập tiêu đề.";
     }
 }
 
@@ -93,27 +104,29 @@ $activePage = 'files';
 require_once ZEV_ROOT . '/admin/partials/header.php';
 ?>
 
-<div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+<div class="page-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap:wrap; gap:12px;">
   <div>
-    <h1 style="font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px;">Quản lý File & Cấu hình</h1>
+    <h1 style="font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px;">
+      <i class="fa-solid fa-box-archive" style="color:var(--color-primary); margin-right:8px;"></i> Quản lý File & Cấu hình
+    </h1>
     <p style="color: var(--color-text-muted); font-size: 0.9rem;">
       Upload mod, dylib, config game và phân phối tải về bảo mật theo Token.
     </p>
   </div>
   <button onclick="document.getElementById('uploadModal').style.display='flex'" class="btn btn-primary">
-    + Upload File Mới
+    <i class="fa-solid fa-cloud-arrow-up"></i> Upload File Mới
   </button>
 </div>
 
 <?php if ($successMsg): ?>
   <div class="alert alert-success" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80;">
-    ✓ <?= htmlspecialchars($successMsg) ?>
+    <i class="fa-solid fa-circle-check"></i> <?= htmlspecialchars($successMsg) ?>
   </div>
 <?php endif; ?>
 
 <?php if ($errorMsg): ?>
   <div class="alert alert-danger" style="margin-bottom: 20px; padding: 12px 16px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171;">
-    ✕ <?= htmlspecialchars($errorMsg) ?>
+    <i class="fa-solid fa-circle-exclamation"></i> <?= htmlspecialchars($errorMsg) ?>
   </div>
 <?php endif; ?>
 
@@ -127,8 +140,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
           <th style="padding: 14px 16px;">Game</th>
           <th style="padding: 14px 16px;">Phiên bản</th>
           <th style="padding: 14px 16px;">Kích thước</th>
-          <th style="padding: 14px 16px;">Yêu cầu VIP</th>
-          <th style="padding: 14px 16px;">Lượt tải</th>
+          <th style="padding: 14px 16px;">Mật khẩu .3105</th>
           <th style="padding: 14px 16px;">Ngày tạo</th>
           <th style="padding: 14px 16px; text-align: right;">Hành động</th>
         </tr>
@@ -136,7 +148,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
       <tbody>
         <?php if (empty($files)): ?>
           <tr>
-            <td colspan="8" style="padding: 32px; text-align: center; color: var(--color-text-muted);">
+            <td colspan="7" style="padding: 32px; text-align: center; color: var(--color-text-muted);">
               Chưa có file nào được tải lên.
             </td>
           </tr>
@@ -144,7 +156,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
           <?php foreach ($files as $f): ?>
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
               <td style="padding: 14px 16px;">
-                <div style="font-weight: 600; color: #fff;"><?= htmlspecialchars($f['title']) ?></div>
+                <div style="font-weight: 600; color: #fff;"><?= htmlspecialchars($f['display_name'] ?? $f['original_name']) ?></div>
                 <div style="font-size: 0.8rem; color: var(--color-text-muted); font-family: monospace;">
                   <?= htmlspecialchars($f['original_name']) ?>
                 </div>
@@ -152,26 +164,26 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
               <td style="padding: 14px 16px;">
                 <span class="badge" style="background: var(--color-surface3);"><?= htmlspecialchars($f['game_name'] ?? 'Chung') ?></span>
               </td>
-              <td style="padding: 14px 16px;">v<?= htmlspecialchars($f['version']) ?></td>
+              <td style="padding: 14px 16px;">v<?= htmlspecialchars($f['file_version'] ?? '1.0') ?></td>
               <td style="padding: 14px 16px; font-family: monospace;">
                 <?= formatBytes($f['file_size']) ?>
               </td>
               <td style="padding: 14px 16px;">
-                <?php if ($f['vip_only']): ?>
-                  <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">VIP Key</span>
+                <?php if (!empty($f['file_password'])): ?>
+                  <span class="badge badge-primary"><i class="fa-solid fa-key"></i> <?= htmlspecialchars($f['file_password']) ?></span>
                 <?php else: ?>
-                  <span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;">Miễn phí</span>
+                  <span style="color:var(--color-text-dim); font-size:0.8rem;">(Không có)</span>
                 <?php endif; ?>
               </td>
-              <td style="padding: 14px 16px; font-weight: 600;">
-                <?= number_format($f['download_count']) ?>
-              </td>
               <td style="padding: 14px 16px; font-size: 0.85rem; color: var(--color-text-muted);">
-                <?= date('d/m/Y H:i', strtotime($f['created_at'])) ?>
+                <?= date('d/m/Y H:i', strtotime($f['uploaded_at'] ?? $f['created_at'] ?? 'now')) ?>
               </td>
-              <td style="padding: 14px 16px; text-align: right;">
+              <td style="padding: 14px 16px; text-align: right; white-space: nowrap;">
+                <a href="../features/?game_id=<?= $f['game_id'] ?: 1 ?>" class="btn btn-sm" style="background: rgba(108, 99, 255, 0.2); color: #a78bfa; margin-right: 6px;">
+                  <i class="fa-solid fa-sliders"></i> Gán Bản Vá
+                </a>
                 <a href="?delete=<?= $f['id'] ?>" onclick="return confirm('Bạn chắc chắn muốn xoá file này?')" class="btn btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
-                  🗑️ Xoá
+                  <i class="fa-solid fa-trash-can"></i> Xoá
                 </a>
               </td>
             </tr>
@@ -186,19 +198,21 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
 <div id="uploadModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
   <div class="card" style="width: 500px; max-width: 90vw; background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--color-border); padding-bottom: 12px;">
-      <h3 style="color: #fff; font-size: 1.2rem; font-weight: 600;">Upload File Mới</h3>
-      <button onclick="document.getElementById('uploadModal').style.display='none'" style="background: none; border: none; color: var(--color-text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      <h3 style="color: #fff; font-size: 1.2rem; font-weight: 600;">
+        <i class="fa-solid fa-cloud-arrow-up" style="color:var(--color-primary); margin-right:6px;"></i> Upload File Mới
+      </h3>
+      <button onclick="document.getElementById('uploadModal').style.display='none'" style="background: none; border: none; color: var(--color-text-muted); font-size: 1.2rem; cursor: pointer;">&times;</button>
     </div>
 
     <form method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 14px;">
       <div class="form-group">
-        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Chọn File (zip, dylib, deb, json, plist...)</label>
+        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Chọn File (.3105, .bytes, .dll, .json...)</label>
         <input type="file" name="file_upload" required class="form-control">
       </div>
 
       <div class="form-group">
         <label style="display: block; margin-bottom: 6px; font-weight: 500;">Tiêu đề hiển thị</label>
-        <input type="text" name="title" required class="form-control" placeholder="ví dụ: Free Fire Mod Menu v1.0">
+        <input type="text" name="title" required class="form-control" placeholder="ví dụ: Free Fire Assembly v1.0">
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -207,7 +221,7 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
           <select name="game_id" class="form-control">
             <option value="">-- Dùng chung --</option>
             <?php foreach ($games as $g): ?>
-              <option value="<?= $g['id'] ?>"><?= htmlspecialchars($g['name']) ?></option>
+              <option value="<?= $g['id'] ?>"><?= htmlspecialchars($g['display_name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -223,14 +237,9 @@ require_once ZEV_ROOT . '/admin/partials/header.php';
         <textarea name="description" class="form-control" rows="2" placeholder="Ghi chú về tính năng của bản cập nhật..."></textarea>
       </div>
 
-      <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" id="vip_only" name="vip_only" value="1" checked>
-        <label for="vip_only" style="cursor: pointer; font-size: 0.9rem;">Chỉ dành cho thiết bị đã kích hoạt Key VIP</label>
-      </div>
-
       <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
         <button type="button" onclick="document.getElementById('uploadModal').style.display='none'" class="btn" style="background: var(--color-surface2); color: #fff;">Hủy</button>
-        <button type="submit" class="btn btn-primary">Bắt đầu Upload</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Bắt đầu Upload</button>
       </div>
     </form>
   </div>

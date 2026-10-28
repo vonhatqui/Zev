@@ -13,9 +13,9 @@ return [
         'driver'   => 'mysql', // 'mysql' hoặc 'sqlite'
         'host'     => 'localhost',
         'port'     => 3306,
-        'name'     => 'zev_database',
-        'user'     => 'zev_user',
-        'password' => 'zev_password',
+        'name'     => 'crackboma592_zevdb', // Đổi thành tên database bạn đã tạo trên cPanel
+        'user'     => 'crackboma592_zevuser',
+        'password' => 'Nhatqui2007@',
         'charset'  => 'utf8mb4',
         'path'     => __DIR__ . '/../database/zev.sqlite', // dùng khi driver = sqlite
     ],
