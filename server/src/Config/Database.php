@@ -44,6 +44,17 @@ class Database
             ];
 
             $this->pdo = new \PDO($dsn, $db['user'] ?? 'root', $db['password'] ?? '', $options);
+
+            // Tự động khởi tạo bảng MySQL nếu database mới chưa có dữ liệu
+            try {
+                $check = $this->pdo->query("SHOW TABLES LIKE 'admins'")->fetch();
+                if (!$check) {
+                    $schemaPath = dirname(__DIR__, 2) . '/database/schema.sql';
+                    if (file_exists($schemaPath)) {
+                        $this->pdo->exec(file_get_contents($schemaPath));
+                    }
+                }
+            } catch (\Throwable $e) {}
         } catch (\PDOException $e) {
             // Nếu không kết nối được MySQL (ví dụ dev local chưa cấu hình MySQL cPanel), fallback sang SQLite
             $sqlitePath = dirname(__DIR__, 2) . '/database/zev.sqlite';

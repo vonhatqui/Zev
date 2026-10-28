@@ -20,7 +20,7 @@ class GameController
     /**
      * GET /api/v1/games
      */
-    public function index(): never
+    public function index(): void
     {
         $games = $this->db->fetchAll(
             "SELECT id, bundle_id, display_name, short_name, logo_url, description, sort_order 
@@ -33,7 +33,7 @@ class GameController
     /**
      * GET /api/v1/games/{id}/categories
      */
-    public function categories(int $gameId): never
+    public function categories(int $gameId): void
     {
         $game = $this->db->fetchOne(
             "SELECT id, display_name FROM games WHERE id = ? AND is_active = 1",
@@ -74,7 +74,7 @@ class GameController
     /**
      * GET /api/v1/games/{id}/features
      */
-    public function features(int $gameId): never
+    public function features(int $gameId): void
     {
         $game = $this->db->fetchOne(
             "SELECT id FROM games WHERE id = ? AND is_active = 1",
@@ -104,7 +104,7 @@ class GameController
     /**
      * GET /api/v1/features/{id}
      */
-    public function feature(int $featureId): never
+    public function feature(int $featureId): void
     {
         $feature = $this->db->fetchOne(
             "SELECT f.id, f.slug, f.display_name, f.description, f.status, 

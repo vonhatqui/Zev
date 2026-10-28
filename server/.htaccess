@@ -1,6 +1,3 @@
-Options -Indexes
-ServerSignature Off
-
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
@@ -19,22 +16,18 @@ ServerSignature Off
 
 # Bảo vệ các file đuôi nhạy cảm
 <FilesMatch "\.(env|log|sql|sqlite|json|lock|md|sh|bash)$">
-    Order deny,allow
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
-# Cấu hình bảo mật HTTP Headers
+# Cấu hình bảo mật HTTP Headers nếu module có sẵn
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-XSS-Protection "1; mode=block"
-</IfModule>
-
-# Cấu hình PHP nếu server hỗ trợ qua .htaccess
-<IfModule mod_php.c>
-    php_flag display_errors Off
-    php_value upload_max_filesize 100M
-    php_value post_max_size 105M
-    php_value max_execution_time 300
-    php_value memory_limit 256M
 </IfModule>

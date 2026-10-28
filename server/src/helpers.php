@@ -3,10 +3,29 @@
  * ZEV — Helper Functions
  */
 
+// ─── Polyfills for PHP < 8.0 ───────────────────────────────────────────────
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool {
+        return '' === $needle || false !== strpos($haystack, $needle);
+    }
+}
+
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool {
+        return 0 === strncmp($haystack, $needle, strlen($needle));
+    }
+}
+
+if (!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool {
+        return '' === $needle || ('' !== $haystack && substr($haystack, -strlen($needle)) === $needle);
+    }
+}
+
 /**
  * Trả về JSON response và thoát (hỗ trợ cả cú pháp jsonResponse(code, status, msg, data) và jsonResponse(array, code))
  */
-function jsonResponse($httpCodeOrData, $status = 'success', string $message = '', array $data = []): never
+function jsonResponse($httpCodeOrData, $status = 'success', string $message = '', array $data = [])
 {
     if (is_array($httpCodeOrData)) {
         $code = (is_int($status) || is_numeric($status)) ? (int)$status : 200;

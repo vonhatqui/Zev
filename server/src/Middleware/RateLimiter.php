@@ -80,7 +80,7 @@ class RateLimiter
                     "INSERT INTO rate_limits (identifier, endpoint, request_count, window_start) VALUES (?, ?, 1, NOW())",
                     [$identifier, $endpoint]
                 );
-            } catch (\Throwable) {}
+            } catch (\Throwable $e) {}
         }
 
         return false;

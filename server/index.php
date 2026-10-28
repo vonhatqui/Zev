@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 $requestUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
-if (str_starts_with($requestUri, '/api/')) {
+if (substr($requestUri, 0, 5) === '/api/') {
     require_once __DIR__ . '/public/index.php';
     exit;
 }

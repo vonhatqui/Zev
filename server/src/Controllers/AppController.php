@@ -23,7 +23,7 @@ class AppController
      * GET /api/v1/app/config
      * Trả về cấu hình công khai của ứng dụng
      */
-    public function config(): never
+    public function config(): void
     {
         $rows = $this->db->fetchAll(
             "SELECT config_key, config_value FROM app_config WHERE is_public = 1"
@@ -50,7 +50,7 @@ class AppController
      * GET /api/v1/app/version
      * Kiểm tra phiên bản app, force update nếu cần
      */
-    public function version(): never
+    public function version(): void
     {
         $clientVersion  = sanitizeString($_GET['v'] ?? '', 20);
         $minVersion     = $this->getConfig('app_version_minimum', '1.0.0');
@@ -78,7 +78,7 @@ class AppController
      * POST /api/v1/log/error
      * Nhận lỗi từ iOS app
      */
-    public function logError(): never
+    public function logError(): void
     {
         $body  = getJsonBody();
         $level = sanitizeString($body['level'] ?? 'error', 20);
@@ -99,14 +99,14 @@ class AppController
                 "INSERT INTO activity_logs (actor_type, action, details, ip_address) VALUES ('api', ?, ?, ?)",
                 ["client.log.{$level}", $ctx, getClientIp()]
             );
-        } catch (\Throwable) {}
+        } catch (\Throwable $e) {}
 
         jsonResponse(200, 'success', 'Đã ghi nhận lỗi.');
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────
 
-    private function getConfig(string $key, mixed $default = null): mixed
+    private function getConfig(string $key, $default = null)
     {
         $row = $this->db->fetchOne(
             "SELECT config_value FROM app_config WHERE config_key = ? LIMIT 1",
