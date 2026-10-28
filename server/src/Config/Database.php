@@ -54,6 +54,19 @@ class Database
                         $this->pdo->exec(file_get_contents($schemaPath));
                     }
                 }
+                // Đảm bảo bảng rate_limits luôn tồn tại
+                $this->pdo->exec("
+                    CREATE TABLE IF NOT EXISTS `rate_limits` (
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `identifier` varchar(128) NOT NULL,
+                        `endpoint` varchar(128) NOT NULL,
+                        `request_count` int(11) NOT NULL DEFAULT 1,
+                        `window_start` datetime NOT NULL,
+                        `blocked_until` datetime DEFAULT NULL,
+                        PRIMARY KEY (`id`),
+                        KEY `idx_rate_lookup` (`identifier`, `endpoint`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                ");
             } catch (\Throwable $e) {}
         } catch (\PDOException $e) {
             // Nếu không kết nối được MySQL (ví dụ dev local chưa cấu hình MySQL cPanel), fallback sang SQLite
@@ -226,6 +239,15 @@ class Database
                 ip_address TEXT DEFAULT NULL,
                 user_agent TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS rate_limits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                identifier TEXT NOT NULL,
+                endpoint TEXT NOT NULL,
+                request_count INTEGER NOT NULL DEFAULT 1,
+                window_start DATETIME NOT NULL,
+                blocked_until DATETIME DEFAULT NULL
             );
         ");
 

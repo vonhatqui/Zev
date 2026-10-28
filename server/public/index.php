@@ -13,14 +13,12 @@ define('ZEV_START', microtime(true));
 require_once ZEV_ROOT . '/src/helpers.php';
 require_once ZEV_ROOT . '/src/Config/Database.php';
 require_once ZEV_ROOT . '/src/Middleware/RateLimiter.php';
-require_once ZEV_ROOT . '/src/Middleware/ApiAuth.php';
 require_once ZEV_ROOT . '/src/Controllers/KeyController.php';
 require_once ZEV_ROOT . '/src/Controllers/AppController.php';
 require_once ZEV_ROOT . '/src/Controllers/FileController.php';
 require_once ZEV_ROOT . '/src/Controllers/GameController.php';
 
 use Zev\Middleware\RateLimiter;
-use Zev\Middleware\ApiAuth;
 use Zev\Controllers\KeyController;
 use Zev\Controllers\AppController;
 use Zev\Controllers\FileController;
@@ -42,26 +40,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// ─── Rate Limiting ────────────────────────────────────────────────────────────
-$clientIp = getClientIp();
-$rateLimiter = new RateLimiter();
-
-if ($rateLimiter->isBlocked($clientIp, $_SERVER['REQUEST_URI'] ?? '/')) {
-    jsonResponse(429, 'error', 'Quá nhiều yêu cầu. Vui lòng thử lại sau.');
-}
-
-// ─── Routing ──────────────────────────────────────────────────────────────────
-$requestUri  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-$method      = $_SERVER['REQUEST_METHOD'];
-
-// Strip /api/v1 prefix
-$route = preg_replace('#^/api/v1#', '', $requestUri);
-$route = rtrim($route, '/') ?: '/';
-
-// Parse path segments
-$segments = array_values(array_filter(explode('/', $route)));
-
 try {
+    // ─── Rate Limiting ────────────────────────────────────────────────────────────
+    $clientIp = getClientIp();
+    $rateLimiter = new RateLimiter();
+
+    if ($rateLimiter->isBlocked($clientIp, $_SERVER['REQUEST_URI'] ?? '/')) {
+        jsonResponse(429, 'error', 'Quá nhiều yêu cầu. Vui lòng thử lại sau.');
+    }
+
+    // ─── Routing ──────────────────────────────────────────────────────────────────
+    $requestUri  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $method      = $_SERVER['REQUEST_METHOD'];
+
+    // Strip /api/v1 prefix
+    $route = preg_replace('#^/api/v1#', '', $requestUri);
+    $route = rtrim($route, '/') ?: '/';
+
+    // Parse path segments
+    $segments = array_values(array_filter(explode('/', $route)));
+
     if ($method === 'POST' && $route === '/auth/verify') {
         (new KeyController())->verify();
     } elseif ($method === 'POST' && $route === '/auth/refresh') {

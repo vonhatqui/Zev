@@ -24,66 +24,72 @@ class RateLimiter
 
     public function isBlocked(string $identifier, string $endpoint): bool
     {
-        $endpoint = $this->normalizeEndpoint($endpoint);
+        try {
+            $endpoint = $this->normalizeEndpoint($endpoint);
 
-        // Kiểm tra đang bị block không
-        $record = $this->db->fetchOne(
-            "SELECT * FROM rate_limits WHERE identifier = ? AND endpoint = ? LIMIT 1",
-            [$identifier, $endpoint]
-        );
-
-        if ($record && $record['blocked_until'] !== null) {
-            if (strtotime($record['blocked_until']) > time()) {
-                return true; // Vẫn đang bị block
-            }
-            // Block đã hết, reset
-            $this->db->execute(
-                "UPDATE rate_limits SET blocked_until = NULL, request_count = 0, window_start = NOW() 
-                 WHERE identifier = ? AND endpoint = ?",
+            // Kiểm tra đang bị block không
+            $record = $this->db->fetchOne(
+                "SELECT * FROM rate_limits WHERE identifier = ? AND endpoint = ? LIMIT 1",
                 [$identifier, $endpoint]
             );
-            return false;
-        }
 
-        // Kiểm tra window
-        if ($record) {
-            $windowStart = strtotime($record['window_start']);
-            if (time() - $windowStart > $this->windowSeconds) {
-                // Window mới
+            if ($record && $record['blocked_until'] !== null) {
+                if (strtotime($record['blocked_until']) > time()) {
+                    return true; // Vẫn đang bị block
+                }
+                $now = date('Y-m-d H:i:s');
+                // Block đã hết, reset
                 $this->db->execute(
-                    "UPDATE rate_limits SET request_count = 1, window_start = NOW() 
+                    "UPDATE rate_limits SET blocked_until = NULL, request_count = 0, window_start = ? 
                      WHERE identifier = ? AND endpoint = ?",
-                    [$identifier, $endpoint]
+                    [$now, $identifier, $endpoint]
                 );
                 return false;
             }
 
-            $newCount = $record['request_count'] + 1;
-            if ($newCount > $this->maxRequests) {
-                $blockedUntil = date('Y-m-d H:i:s', time() + ($this->blockMinutes * 60));
+            // Kiểm tra window
+            if ($record) {
+                $now = date('Y-m-d H:i:s');
+                $windowStart = strtotime($record['window_start']);
+                if (time() - $windowStart > $this->windowSeconds) {
+                    // Window mới
+                    $this->db->execute(
+                        "UPDATE rate_limits SET request_count = 1, window_start = ? 
+                         WHERE identifier = ? AND endpoint = ?",
+                        [$now, $identifier, $endpoint]
+                    );
+                    return false;
+                }
+
+                $newCount = $record['request_count'] + 1;
+                if ($newCount > $this->maxRequests) {
+                    $blockedUntil = date('Y-m-d H:i:s', time() + ($this->blockMinutes * 60));
+                    $this->db->execute(
+                        "UPDATE rate_limits SET request_count = ?, blocked_until = ? 
+                         WHERE identifier = ? AND endpoint = ?",
+                        [$newCount, $blockedUntil, $identifier, $endpoint]
+                    );
+                    return true;
+                }
+
                 $this->db->execute(
-                    "UPDATE rate_limits SET request_count = ?, blocked_until = ? 
-                     WHERE identifier = ? AND endpoint = ?",
-                    [$newCount, $blockedUntil, $identifier, $endpoint]
+                    "UPDATE rate_limits SET request_count = ? WHERE identifier = ? AND endpoint = ?",
+                    [$newCount, $identifier, $endpoint]
                 );
-                return true;
+            } else {
+                // Tạo record mới
+                $now = date('Y-m-d H:i:s');
+                $this->db->insert(
+                    "INSERT INTO rate_limits (identifier, endpoint, request_count, window_start) VALUES (?, ?, 1, ?)",
+                    [$identifier, $endpoint, $now]
+                );
             }
 
-            $this->db->execute(
-                "UPDATE rate_limits SET request_count = ? WHERE identifier = ? AND endpoint = ?",
-                [$newCount, $identifier, $endpoint]
-            );
-        } else {
-            // Tạo record mới
-            try {
-                $this->db->insert(
-                    "INSERT INTO rate_limits (identifier, endpoint, request_count, window_start) VALUES (?, ?, 1, NOW())",
-                    [$identifier, $endpoint]
-                );
-            } catch (\Throwable $e) {}
+            return false;
+        } catch (\Throwable $e) {
+            // Nếu bảng chưa tạo hoặc lỗi, không chặn request của người dùng
+            return false;
         }
-
-        return false;
     }
 
     private function normalizeEndpoint(string $uri): string
