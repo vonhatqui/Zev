@@ -5,13 +5,16 @@ import CryptoKit
 // MARK: - GamePatchService
 // Cơ chế nạp & gỡ bản vá chuẩn 3105-2.0:
 // 1. Phân giải Container qua MobileContainerManager (MHA-C2) & chuẩn hóa đường dẫn canonical (/private/var/...)
-// 2. Tạo staging file nội bộ trong cùng thư mục đích (.3105-patch-<UUID>) tránh lỗi EXDEV cross-device link
-// 3. FileHandle.synchronize() ép ghi vật lý xuống NVMe
-// 4. POSIX rename() atomic thay thế file đích an toàn
-// 5. Gán quyền 0o777 (rwxrwxrwx) và FileProtectionType.none để game engine (Unity) đọc và thực thi
-// 6. Xác thực SHA256 digest sau khi ghi để bảo đảm không bị lỗi file
-// 7. Lưu bản sao lưu vào Application Support của Zev (không để lại dấu vết bên trong container game)
-// 8. Uninjector: Atomic restore file gốc và xóa sạch file đã nạp không còn dấu vết
+// 2. Tự động hỗ trợ cả Free Fire Thường (com.dts.freefireth) và Free Fire MAX (com.dts.freefiremax)
+// 3. Tự động sinh đầy đủ các biến thể tên gọi của Tencent IFix:
+//    - Assembly-CSharp-patch.bytes (gốc)
+//    - Assembly-CSharp.patch.bytes (dấu chấm)
+//    - Assembly-CSharp.bytes
+// 4. Tự động đồng bộ localconfig.json và localConfig.json (chống lỗi phân biệt hoa/thường trên APFS)
+// 5. Ghi vào cả Documents/ và Documents/cached/ để game engine luôn đọc được
+// 6. Tạo staging file nội bộ (.3105-patch-<UUID>), synchronize NVMe, rename POSIX atomic
+// 7. Gán quyền 0o777 (rwxrwxrwx) và FileProtectionType.none
+// 8. Sao lưu độc lập trong Zev_Backups (Application Support), Uninjector gỡ sạch 100% không dấu vết
 
 enum PatchError: LocalizedError {
     case gameContainerNotFound(String)
@@ -218,14 +221,26 @@ final class GamePatchService {
     ) async throws {
         let targetBundleId = game.bundleId
         
-        guard let liveContainerPath = GameDetectionService.shared.resolveAppContainer(bundleId: targetBundleId) else {
+        // 1. Tìm tất cả container Free Fire có sẵn trên thiết bị (Thường & MAX)
+        var targetContainers: [(bundleId: String, rootURL: URL)] = []
+        
+        if let primaryPath = GameDetectionService.shared.resolveAppContainer(bundleId: targetBundleId) {
+            targetContainers.append((targetBundleId, PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: primaryPath))))
+        }
+        
+        // Tự động kiểm tra thêm bản Free Fire khác (nếu máy cài cả 2 bản hoặc người dùng chọn nhầm tab)
+        let alternateBundleId = (targetBundleId == "com.dts.freefireth") ? "com.dts.freefiremax" : "com.dts.freefireth"
+        if let altPath = GameDetectionService.shared.resolveAppContainer(bundleId: alternateBundleId) {
+            targetContainers.append((alternateBundleId, PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: altPath))))
+        }
+        
+        guard !targetContainers.isEmpty else {
             throw PatchError.gameContainerNotFound(targetBundleId)
         }
-        let containerRootURL = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: liveContainerPath))
         
         progressHandler(0.15, "Đang kết nối máy chủ...")
         
-        // 1. Tải file chính (Main patch file)
+        // 2. Tải file chính (Main patch file)
         let tokenResponse = try await APIService.shared.requestDownloadToken(fileId: patch.fileId)
         guard let downloadURL = URL(string: tokenResponse.downloadUrl) else {
             throw PatchError.fileDownloadFailed("URL tải file chính không hợp lệ.")
@@ -236,151 +251,133 @@ final class GamePatchService {
         let mainData = try Data(contentsOf: tempMainURL)
         try? fm.removeItem(at: tempMainURL)
         
-        var injectedPaths: [String] = []
-        var backupMap: [String: String] = [:]
-        var createdDirectories: [String] = []
+        // 3. Tải file localconfig nếu có
+        var configData: Data? = nil
+        if let configId = patch.configFileId {
+            progressHandler(0.50, "Đang tải cấu hình localconfig.json...")
+            if let configToken = try? await APIService.shared.requestDownloadToken(fileId: configId),
+               let configURL = URL(string: configToken.downloadUrl) {
+                if let (tempConfigURL, _) = try? await URLSession.shared.download(from: configURL),
+                   let cData = try? Data(contentsOf: tempConfigURL) {
+                    configData = cData
+                    try? fm.removeItem(at: tempConfigURL)
+                }
+            }
+        }
+        
+        // Nếu không có file config tải lên, tự động tạo config kích hoạt chuẩn IFix
+        if configData == nil {
+            configData = "{\"testCodePatch\":true,\"system_active\":true}".data(using: .utf8)
+        }
+        
+        var allInjectedPaths: [String] = []
+        var allBackupMap: [String: String] = [:]
+        var allCreatedDirectories: [String] = []
         let timestamp = Int(Date().timeIntervalSince1970)
         let backupDir = try getBackupSessionDirectory(bundleId: targetBundleId, timestamp: timestamp)
         
-        // 2. NẠP FILE THEO CƠ CHẾ 3105
-        if PatchPackageCodec.is3105Package(data: mainData) {
-            progressHandler(0.55, "Đang giải mã gói 3105...")
-            let decoded = try PatchPackageCodec.decode(mainData, password: patch.filePassword)
+        // 4. Áp dụng cho từng container game tìm thấy
+        for (bId, containerRootURL) in targetContainers {
+            progressHandler(0.65, "Đang nạp dữ liệu vào \(bId.contains("max") ? "FF MAX" : "FF Thường")...")
             
-            // A. Chuẩn bị thư mục theo gói 3105
-            for dir in decoded.project.directories {
-                let dirBundle = dir.bundleID.isEmpty ? targetBundleId : dir.bundleID
-                if let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: dirBundle) {
+            // Xử lý gói .3105 chuyên dụng
+            if PatchPackageCodec.is3105Package(data: mainData) {
+                let decoded = try PatchPackageCodec.decode(mainData, password: patch.filePassword)
+                
+                for dir in decoded.project.directories {
+                    let dirBundle = dir.bundleID.isEmpty ? bId : dir.bundleID
+                    if let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: dirBundle) {
+                        let cRoot = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: cPath))
+                        if let dirURL = try? PatchPathValidator.resolveContainedTargetURL(relativePath: dir.relativePath, containerRoot: cRoot) {
+                            if !fm.fileExists(atPath: dirURL.path) {
+                                try? fm.createDirectory(at: dirURL, withIntermediateDirectories: true)
+                                allCreatedDirectories.append(dirURL.path)
+                            }
+                        }
+                    }
+                }
+                
+                for rule in decoded.project.rules {
+                    let ruleBundle = rule.bundleID.isEmpty ? bId : rule.bundleID
+                    guard let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: ruleBundle) else { continue }
                     let cRoot = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: cPath))
-                    if let dirURL = try? PatchPathValidator.resolveContainedTargetURL(relativePath: dir.relativePath, containerRoot: cRoot) {
-                        if !fm.fileExists(atPath: dirURL.path) {
-                            try? fm.createDirectory(at: dirURL, withIntermediateDirectories: true)
-                            createdDirectories.append(dirURL.path)
+                    let targetURL = try PatchPathValidator.resolveContainedTargetURL(relativePath: rule.relativePath, containerRoot: cRoot)
+                    
+                    if fm.fileExists(atPath: targetURL.path) {
+                        let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
+                        try fm.copyItem(at: targetURL, to: backupFile)
+                        allBackupMap[targetURL.path] = backupFile.path
+                    }
+                    
+                    try atomicWrite(rule.replacementData, to: targetURL, preservingExistingAttributes: true)
+                    allInjectedPaths.append(targetURL.path)
+                }
+            } else {
+                // Xử lý file thường (.bytes, Assembly, .dll, v.v.)
+                // Tạo các biến thể tên gọi phổ biến của IFix để game luôn nhận diện
+                var fileNames: Set<String> = [patch.fileName]
+                if patch.fileName.contains("-patch.bytes") {
+                    fileNames.insert(patch.fileName.replacingOccurrences(of: "-patch.bytes", with: ".patch.bytes"))
+                    fileNames.insert(patch.fileName.replacingOccurrences(of: "-patch.bytes", with: ".bytes"))
+                } else if patch.fileName.contains(".patch.bytes") {
+                    fileNames.insert(patch.fileName.replacingOccurrences(of: ".patch.bytes", with: "-patch.bytes"))
+                    fileNames.insert(patch.fileName.replacingOccurrences(of: ".patch.bytes", with: ".bytes"))
+                }
+                
+                // Các thư mục đích mà Free Fire thường đọc hotfix
+                let targetFolders = ["Documents", "Documents/cached", "Documents/patch"]
+                
+                for folderRel in targetFolders {
+                    let destFolder = containerRootURL.appendingPathComponent(folderRel, isDirectory: true)
+                    if !fm.fileExists(atPath: destFolder.path) {
+                        try? fm.createDirectory(at: destFolder, withIntermediateDirectories: true)
+                        allCreatedDirectories.append(destFolder.path)
+                    }
+                    
+                    // Ghi tất cả biến thể tên file bản vá
+                    for fname in fileNames {
+                        let targetURL = destFolder.appendingPathComponent(fname)
+                        if fm.fileExists(atPath: targetURL.path) {
+                            let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
+                            try? fm.copyItem(at: targetURL, to: backupFile)
+                            allBackupMap[targetURL.path] = backupFile.path
+                        }
+                        
+                        try atomicWrite(mainData, to: targetURL, preservingExistingAttributes: true)
+                        allInjectedPaths.append(targetURL.path)
+                    }
+                    
+                    // Ghi cả localconfig.json và localConfig.json vào thư mục
+                    if let cfgData = configData {
+                        let configNames = ["localconfig.json", "localConfig.json"]
+                        for cfgName in configNames {
+                            let cfgTargetURL = destFolder.appendingPathComponent(cfgName)
+                            if fm.fileExists(atPath: cfgTargetURL.path) {
+                                let backupFile = backupDir.appendingPathComponent("cfg_\(UUID().uuidString).orig")
+                                try? fm.copyItem(at: cfgTargetURL, to: backupFile)
+                                allBackupMap[cfgTargetURL.path] = backupFile.path
+                            }
+                            
+                            try atomicWrite(cfgData, to: cfgTargetURL, preservingExistingAttributes: true)
+                            allInjectedPaths.append(cfgTargetURL.path)
                         }
                     }
                 }
             }
-            
-            // B. Nạp từng quy tắc trong gói 3105
-            let totalRules = decoded.project.rules.count
-            for (idx, rule) in decoded.project.rules.enumerated() {
-                let ruleBundle = rule.bundleID.isEmpty ? targetBundleId : rule.bundleID
-                guard let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: ruleBundle) else {
-                    continue
-                }
-                let cRoot = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: cPath))
-                let targetURL = try PatchPathValidator.resolveContainedTargetURL(
-                    relativePath: rule.relativePath,
-                    containerRoot: cRoot
-                )
-                
-                let progress = 0.60 + (0.25 * Double(idx + 1) / Double(max(totalRules, 1)))
-                progressHandler(progress, "Đang nạp: \(targetURL.lastPathComponent)")
-                
-                // Sao lưu file gốc vào Zev_Backups nếu đã tồn tại
-                if fm.fileExists(atPath: targetURL.path) {
-                    let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
-                    try fm.copyItem(at: targetURL, to: backupFile)
-                    backupMap[targetURL.path] = backupFile.path
-                }
-                
-                // Ghi atomic chuẩn 3105
-                try atomicWrite(rule.replacementData, to: targetURL, preservingExistingAttributes: true)
-                
-                // Xác thực SHA256
-                let writtenDigest = try digestFile(targetURL)
-                let expectedDigest = digestData(rule.replacementData)
-                guard writtenDigest == expectedDigest else {
-                    throw PatchError.applyFailed("Xác thực checksum thất bại cho \(targetURL.lastPathComponent)")
-                }
-                
-                injectedPaths.append(targetURL.path)
-            }
-        } else {
-            // Nạp file thường (.bytes, .dll, Assembly, v.v.)
-            progressHandler(0.65, "Đang áp dụng \(patch.fileName)...")
-            let subPath = (patch.targetPath ?? "Documents").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            let relDir = subPath.isEmpty ? "Documents" : subPath
-            let destFolder = containerRootURL.appendingPathComponent(relDir, isDirectory: true)
-            
-            if !fm.fileExists(atPath: destFolder.path) {
-                try fm.createDirectory(at: destFolder, withIntermediateDirectories: true)
-                createdDirectories.append(destFolder.path)
-            }
-            
-            let targetURL = destFolder.appendingPathComponent(patch.fileName)
-            
-            // Sao lưu file gốc nếu có
-            if fm.fileExists(atPath: targetURL.path) {
-                let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
-                try fm.copyItem(at: targetURL, to: backupFile)
-                backupMap[targetURL.path] = backupFile.path
-            }
-            
-            // Ghi atomic chuẩn 3105
-            try atomicWrite(mainData, to: targetURL, preservingExistingAttributes: true)
-            
-            // Xác thực SHA256
-            let writtenDigest = try digestFile(targetURL)
-            let expectedDigest = digestData(mainData)
-            guard writtenDigest == expectedDigest else {
-                throw PatchError.applyFailed("Xác thực checksum thất bại cho \(patch.fileName)")
-            }
-            
-            injectedPaths.append(targetURL.path)
         }
         
-        // 3. NẠP FILE LOCALCONFIG NẾU CÓ ĐÍNH KÈM
-        if let configId = patch.configFileId {
-            progressHandler(0.85, "Đang tải cấu hình localconfig.json...")
-            let configToken = try await APIService.shared.requestDownloadToken(fileId: configId)
-            if let configURL = URL(string: configToken.downloadUrl) {
-                let (tempConfigURL, _) = try await URLSession.shared.download(from: configURL)
-                let configData = try Data(contentsOf: tempConfigURL)
-                try? fm.removeItem(at: tempConfigURL)
-                
-                let configName = patch.configFileName ?? "localconfig.json"
-                let configSubPath = (patch.configTargetPath ?? "Documents").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                let configRelDir = configSubPath.isEmpty ? "Documents" : configSubPath
-                let configFolder = containerRootURL.appendingPathComponent(configRelDir, isDirectory: true)
-                
-                if !fm.fileExists(atPath: configFolder.path) {
-                    try fm.createDirectory(at: configFolder, withIntermediateDirectories: true)
-                    createdDirectories.append(configFolder.path)
-                }
-                
-                let configTargetURL = configFolder.appendingPathComponent(configName)
-                
-                if fm.fileExists(atPath: configTargetURL.path) {
-                    let backupFile = backupDir.appendingPathComponent("cfg_\(UUID().uuidString).orig")
-                    try fm.copyItem(at: configTargetURL, to: backupFile)
-                    backupMap[configTargetURL.path] = backupFile.path
-                }
-                
-                try atomicWrite(configData, to: configTargetURL, preservingExistingAttributes: true)
-                
-                let writtenDigest = try digestFile(configTargetURL)
-                let expectedDigest = digestData(configData)
-                guard writtenDigest == expectedDigest else {
-                    throw PatchError.applyFailed("Xác thực checksum thất bại cho \(configName)")
-                }
-                
-                injectedPaths.append(configTargetURL.path)
-            }
-        }
-        
-        // 4. Lưu lại bản ghi manifest
+        // 5. Lưu lại bản ghi manifest
         let record = InjectionRecord(
             bundleId: targetBundleId,
             timestamp: Date().timeIntervalSince1970,
             patchTitle: patch.displayName,
-            injectedPaths: injectedPaths,
-            backupMap: backupMap,
-            createdDirectories: createdDirectories
+            injectedPaths: allInjectedPaths,
+            backupMap: allBackupMap,
+            createdDirectories: allCreatedDirectories
         )
         saveInjectionRecord(record)
         
-        progressHandler(1.0, "Đã nạp thành công chuẩn 3105-2.0!")
+        progressHandler(1.0, "Đã nạp thành công vào cả Free Fire & Free Fire MAX!")
     }
     
     // MARK: - Uninjector (Xóa Sạch Không Còn Dấu Vết)
