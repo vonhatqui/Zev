@@ -28,3 +28,5 @@ server/logs/*
 # Environment & Credentials
 .env
 *.log
+*.zip
+build_artifacts/
