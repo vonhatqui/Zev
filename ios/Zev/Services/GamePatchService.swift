@@ -1,9 +1,17 @@
 import Foundation
 import UIKit
+import CryptoKit
 
 // MARK: - GamePatchService
-// Cơ chế nạp & gỡ bản vá (Loader -> Injector -> Uninjector)
-// Hỗ trợ gói .3105 (giải mã AES-GCM + password), file .bytes/Assembly, và file đính kèm localconfig.json vào Documents/
+// Cơ chế nạp & gỡ bản vá chuẩn 3105-2.0:
+// 1. Phân giải Container qua MobileContainerManager (MHA-C2) & chuẩn hóa đường dẫn canonical (/private/var/...)
+// 2. Tạo staging file nội bộ trong cùng thư mục đích (.3105-patch-<UUID>) tránh lỗi EXDEV cross-device link
+// 3. FileHandle.synchronize() ép ghi vật lý xuống NVMe
+// 4. POSIX rename() atomic thay thế file đích an toàn
+// 5. Gán quyền 0o777 (rwxrwxrwx) và FileProtectionType.none để game engine (Unity) đọc và thực thi
+// 6. Xác thực SHA256 digest sau khi ghi để bảo đảm không bị lỗi file
+// 7. Lưu bản sao lưu vào Application Support của Zev (không để lại dấu vết bên trong container game)
+// 8. Uninjector: Atomic restore file gốc và xóa sạch file đã nạp không còn dấu vết
 
 enum PatchError: LocalizedError {
     case gameContainerNotFound(String)
@@ -22,7 +30,7 @@ enum PatchError: LocalizedError {
         case .unsupportedFormat(let ext):
             return "Định dạng file không được hỗ trợ: .\(ext)"
         case .permissionDenied(let path):
-            return "Không đủ quyền truy cập filesystem tại: \(path). Yêu cầu ứng dụng có quyền MobileHouseArrest hoặc cài đặt qua TrollStore / chứng chỉ hợp lệ."
+            return "Không đủ quyền truy cập filesystem tại: \(path). Yêu cầu ứng dụng có quyền MobileHouseArrest hoặc cài đặt qua TrollStore."
         case .applyFailed(let msg):
             return "Lỗi khi áp dụng bản vá: \(msg)"
         case .uninjectFailed(let msg):
@@ -32,13 +40,13 @@ enum PatchError: LocalizedError {
 }
 
 // MARK: - Injection Record Manifest
-// Lưu vết các file đã nạp để Uninjector có thể gỡ sạch không để lại dấu vết
 struct InjectionRecord: Codable {
     let bundleId: String
     let timestamp: TimeInterval
     let patchTitle: String
     let injectedPaths: [String]
-    let backupMap: [String: String] // targetPath -> backupPath
+    let backupMap: [String: String] // targetPath -> localBackupPath
+    let createdDirectories: [String] // Các thư mục được tạo mới cần dọn dẹp khi gỡ
 }
 
 final class GamePatchService {
@@ -51,7 +59,7 @@ final class GamePatchService {
     
     // MARK: - Status Tracking
     
-    /// Kiểm tra game này hiện tại đã được nạp bản vá hay chưa
+    /// Kiểm tra game hiện tại đã được nạp bản vá hay chưa
     func isInjected(bundleId: String) -> Bool {
         guard let record = getInjectionRecord(bundleId: bundleId) else { return false }
         for path in record.injectedPaths {
@@ -82,9 +90,127 @@ final class GamePatchService {
         UserDefaults.standard.synchronize()
     }
     
-    // MARK: - Apply Active Patch (1-File + Optional Config)
+    // MARK: - 3105-2.0 Atomic File Operations
     
-    /// Nạp bản vá duy nhất (Main file + localconfig.json) vào Documents của game
+    /// Ghi file atomic bằng cách tạo file tạm trong cùng thư mục đích, flush NVMe, và rename POSIX
+    private func atomicWrite(
+        _ data: Data,
+        to target: URL,
+        preservingExistingAttributes: Bool = true
+    ) throws {
+        let parentDir = target.deletingLastPathComponent()
+        if !fm.fileExists(atPath: parentDir.path) {
+            try fm.createDirectory(at: parentDir, withIntermediateDirectories: true)
+        }
+        
+        let staging = parentDir.appendingPathComponent(".3105-patch-\(UUID().uuidString)")
+        var attributes: [FileAttributeKey: Any] = [:]
+        
+        if preservingExistingAttributes, let current = try? fm.attributesOfItem(atPath: target.path) {
+            if let permissions = current[.posixPermissions] { attributes[.posixPermissions] = permissions }
+            if let protection = current[.protectionKey] { attributes[.protectionKey] = protection }
+        }
+        
+        // Mặc định quyền rwxrwxrwx và không khóa file
+        if attributes[.posixPermissions] == nil {
+            attributes[.posixPermissions] = 0o777
+        }
+        if attributes[.protectionKey] == nil {
+            attributes[.protectionKey] = FileProtectionType.none
+        }
+        
+        guard fm.createFile(atPath: staging.path, contents: data, attributes: attributes) else {
+            throw PatchError.applyFailed("Không thể tạo file staging tạm thời tại \(staging.path)")
+        }
+        defer { try? fm.removeItem(at: staging) }
+        
+        let handle = try FileHandle(forWritingTo: staging)
+        try handle.synchronize()
+        try handle.close()
+        
+        guard rename(staging.path, target.path) == 0 else {
+            throw PatchError.applyFailed("Rename atomic thất bại tại \(target.path), errno=\(errno)")
+        }
+        
+        chmod(target.path, 0o777)
+        try? fm.setAttributes([
+            .posixPermissions: 0o777,
+            .protectionKey: FileProtectionType.none
+        ], ofItemAtPath: target.path)
+    }
+    
+    /// Khôi phục file atomic từ bản sao lưu
+    private func atomicCopy(
+        _ source: URL,
+        to target: URL
+    ) throws {
+        let parentDir = target.deletingLastPathComponent()
+        if !fm.fileExists(atPath: parentDir.path) {
+            try fm.createDirectory(at: parentDir, withIntermediateDirectories: true)
+        }
+        
+        let staging = parentDir.appendingPathComponent(".3105-restore-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: staging) }
+        
+        try fm.copyItem(at: source, to: staging)
+        
+        var attributes: [FileAttributeKey: Any] = [:]
+        if let current = try? fm.attributesOfItem(atPath: target.path) {
+            if let permissions = current[.posixPermissions] { attributes[.posixPermissions] = permissions }
+            if let protection = current[.protectionKey] { attributes[.protectionKey] = protection }
+        }
+        if attributes[.posixPermissions] == nil {
+            attributes[.posixPermissions] = 0o777
+        }
+        if attributes[.protectionKey] == nil {
+            attributes[.protectionKey] = FileProtectionType.none
+        }
+        try? fm.setAttributes(attributes, ofItemAtPath: staging.path)
+        
+        let handle = try FileHandle(forWritingTo: staging)
+        try handle.synchronize()
+        try handle.close()
+        
+        guard rename(staging.path, target.path) == 0 else {
+            throw PatchError.uninjectFailed("Không thể khôi phục file gốc tại \(target.path)")
+        }
+        chmod(target.path, 0o777)
+    }
+    
+    /// Tính SHA256 của file trên ổ đĩa để kiểm tra tính toàn vẹn
+    private func digestFile(_ url: URL) throws -> Data {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while let chunk = try handle.read(upToCount: 1_024 * 1_024), !chunk.isEmpty {
+            hasher.update(data: chunk)
+        }
+        return Data(hasher.finalize())
+    }
+    
+    private func digestData(_ data: Data) -> Data {
+        Data(SHA256.hash(data: data))
+    }
+    
+    /// Thư mục sao lưu an toàn bên trong Application Support của Zev
+    private func getBackupSessionDirectory(bundleId: String, timestamp: Int) throws -> URL {
+        let appSupport = try fm.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let sessionDir = appSupport
+            .appendingPathComponent("Zev_Backups", isDirectory: true)
+            .appendingPathComponent(bundleId, isDirectory: true)
+            .appendingPathComponent("\(timestamp)", isDirectory: true)
+        try fm.createDirectory(at: sessionDir, withIntermediateDirectories: true)
+        return sessionDir
+    }
+    
+    // MARK: - Apply Active Patch (3105-2.0 Mechanism)
+    
+    /// Nạp bản vá vào container game theo chuẩn 3105-2.0
     func applyActivePatch(
         game: Game,
         patch: ActiveGamePatch,
@@ -92,9 +218,10 @@ final class GamePatchService {
     ) async throws {
         let targetBundleId = game.bundleId
         
-        guard let liveContainer = GameDetectionService.shared.resolveAppContainer(bundleId: targetBundleId) else {
+        guard let liveContainerPath = GameDetectionService.shared.resolveAppContainer(bundleId: targetBundleId) else {
             throw PatchError.gameContainerNotFound(targetBundleId)
         }
+        let containerRootURL = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: liveContainerPath))
         
         progressHandler(0.15, "Đang kết nối máy chủ...")
         
@@ -107,176 +234,205 @@ final class GamePatchService {
         progressHandler(0.35, "Đang tải file bản vá (\(patch.fileName))...")
         let (tempMainURL, _) = try await URLSession.shared.download(from: downloadURL)
         let mainData = try Data(contentsOf: tempMainURL)
+        try? fm.removeItem(at: tempMainURL)
         
         var injectedPaths: [String] = []
         var backupMap: [String: String] = [:]
+        var createdDirectories: [String] = []
         let timestamp = Int(Date().timeIntervalSince1970)
-        let backupBaseDir = URL(fileURLWithPath: liveContainer).appendingPathComponent("Documents/Zev_Backups/\(timestamp)")
+        let backupDir = try getBackupSessionDirectory(bundleId: targetBundleId, timestamp: timestamp)
         
-        // 2. NẠP FILE CHÍNH
+        // 2. NẠP FILE THEO CƠ CHẾ 3105
         if PatchPackageCodec.is3105Package(data: mainData) {
-            progressHandler(0.55, "Đang giải mã gói .3105...")
+            progressHandler(0.55, "Đang giải mã gói 3105...")
             let decoded = try PatchPackageCodec.decode(mainData, password: patch.filePassword)
             
-            progressHandler(0.70, "Đang nạp các file từ gói .3105 vào Documents...")
-            for rule in decoded.project.rules {
+            // A. Chuẩn bị thư mục theo gói 3105
+            for dir in decoded.project.directories {
+                let dirBundle = dir.bundleID.isEmpty ? targetBundleId : dir.bundleID
+                if let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: dirBundle) {
+                    let cRoot = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: cPath))
+                    if let dirURL = try? PatchPathValidator.resolveContainedTargetURL(relativePath: dir.relativePath, containerRoot: cRoot) {
+                        if !fm.fileExists(atPath: dirURL.path) {
+                            try? fm.createDirectory(at: dirURL, withIntermediateDirectories: true)
+                            createdDirectories.append(dirURL.path)
+                        }
+                    }
+                }
+            }
+            
+            // B. Nạp từng quy tắc trong gói 3105
+            let totalRules = decoded.project.rules.count
+            for (idx, rule) in decoded.project.rules.enumerated() {
                 let ruleBundle = rule.bundleID.isEmpty ? targetBundleId : rule.bundleID
-                guard let containerRoot = GameDetectionService.shared.resolveAppContainer(bundleId: ruleBundle) else {
+                guard let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: ruleBundle) else {
                     continue
                 }
+                let cRoot = PatchPathValidator.canonicalFileURL(URL(fileURLWithPath: cPath))
+                let targetURL = try PatchPathValidator.resolveContainedTargetURL(
+                    relativePath: rule.relativePath,
+                    containerRoot: cRoot
+                )
                 
-                let destURL = URL(fileURLWithPath: containerRoot).appendingPathComponent(rule.relativePath)
-                try fm.createDirectory(at: destURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                let progress = 0.60 + (0.25 * Double(idx + 1) / Double(max(totalRules, 1)))
+                progressHandler(progress, "Đang nạp: \(targetURL.lastPathComponent)")
                 
-                // Sao lưu file gốc trước khi ghi đè
-                if fm.fileExists(atPath: destURL.path) {
-                    try? fm.createDirectory(at: backupBaseDir, withIntermediateDirectories: true)
-                    let backupDest = backupBaseDir.appendingPathComponent(destURL.lastPathComponent)
-                    try? fm.copyItem(at: destURL, to: backupDest)
-                    backupMap[destURL.path] = backupDest.path
-                    try? fm.removeItem(at: destURL)
+                // Sao lưu file gốc vào Zev_Backups nếu đã tồn tại
+                if fm.fileExists(atPath: targetURL.path) {
+                    let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
+                    try fm.copyItem(at: targetURL, to: backupFile)
+                    backupMap[targetURL.path] = backupFile.path
                 }
                 
-                try rule.replacementData.write(to: destURL, options: .atomic)
-                try? fm.setAttributes([.posixPermissions: 0o777], ofItemAtPath: destURL.path)
-                injectedPaths.append(destURL.path)
+                // Ghi atomic chuẩn 3105
+                try atomicWrite(rule.replacementData, to: targetURL, preservingExistingAttributes: true)
+                
+                // Xác thực SHA256
+                let writtenDigest = try digestFile(targetURL)
+                let expectedDigest = digestData(rule.replacementData)
+                guard writtenDigest == expectedDigest else {
+                    throw PatchError.applyFailed("Xác thực checksum thất bại cho \(targetURL.lastPathComponent)")
+                }
+                
+                injectedPaths.append(targetURL.path)
             }
         } else {
-            // Nạp file thường (.bytes, .dll, .json, v.v.)
-            progressHandler(0.65, "Đang sao lưu và nạp \(patch.fileName)...")
-            let subDir = patch.targetPath ?? "Documents/"
-            let destFolderURL = URL(fileURLWithPath: liveContainer).appendingPathComponent(subDir)
-            try fm.createDirectory(at: destFolderURL, withIntermediateDirectories: true)
+            // Nạp file thường (.bytes, .dll, Assembly, v.v.)
+            progressHandler(0.65, "Đang áp dụng \(patch.fileName)...")
+            let subPath = (patch.targetPath ?? "Documents").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            let relDir = subPath.isEmpty ? "Documents" : subPath
+            let destFolder = containerRootURL.appendingPathComponent(relDir, isDirectory: true)
             
-            let destFileURL = destFolderURL.appendingPathComponent(patch.fileName)
-            if fm.fileExists(atPath: destFileURL.path) {
-                try? fm.createDirectory(at: backupBaseDir, withIntermediateDirectories: true)
-                let backupDest = backupBaseDir.appendingPathComponent(destFileURL.lastPathComponent)
-                try? fm.copyItem(at: destFileURL, to: backupDest)
-                backupMap[destFileURL.path] = backupDest.path
-                try? fm.removeItem(at: destFileURL)
+            if !fm.fileExists(atPath: destFolder.path) {
+                try fm.createDirectory(at: destFolder, withIntermediateDirectories: true)
+                createdDirectories.append(destFolder.path)
             }
             
-            try fm.copyItem(at: tempMainURL, to: destFileURL)
-            try? fm.setAttributes([.posixPermissions: 0o777], ofItemAtPath: destFileURL.path)
-            injectedPaths.append(destFileURL.path)
+            let targetURL = destFolder.appendingPathComponent(patch.fileName)
+            
+            // Sao lưu file gốc nếu có
+            if fm.fileExists(atPath: targetURL.path) {
+                let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
+                try fm.copyItem(at: targetURL, to: backupFile)
+                backupMap[targetURL.path] = backupFile.path
+            }
+            
+            // Ghi atomic chuẩn 3105
+            try atomicWrite(mainData, to: targetURL, preservingExistingAttributes: true)
+            
+            // Xác thực SHA256
+            let writtenDigest = try digestFile(targetURL)
+            let expectedDigest = digestData(mainData)
+            guard writtenDigest == expectedDigest else {
+                throw PatchError.applyFailed("Xác thực checksum thất bại cho \(patch.fileName)")
+            }
+            
+            injectedPaths.append(targetURL.path)
         }
         
         // 3. NẠP FILE LOCALCONFIG NẾU CÓ ĐÍNH KÈM
         if let configId = patch.configFileId {
-            progressHandler(0.80, "Đang tải cấu hình localconfig.json...")
+            progressHandler(0.85, "Đang tải cấu hình localconfig.json...")
             let configToken = try await APIService.shared.requestDownloadToken(fileId: configId)
             if let configURL = URL(string: configToken.downloadUrl) {
                 let (tempConfigURL, _) = try await URLSession.shared.download(from: configURL)
-                let configName = patch.configFileName ?? "localconfig.json"
-                let configSubDir = patch.configTargetPath ?? "Documents/"
-                let configFolderURL = URL(fileURLWithPath: liveContainer).appendingPathComponent(configSubDir)
-                try fm.createDirectory(at: configFolderURL, withIntermediateDirectories: true)
+                let configData = try Data(contentsOf: tempConfigURL)
+                try? fm.removeItem(at: tempConfigURL)
                 
-                let configDestURL = configFolderURL.appendingPathComponent(configName)
-                if fm.fileExists(atPath: configDestURL.path) {
-                    try? fm.createDirectory(at: backupBaseDir, withIntermediateDirectories: true)
-                    let backupDest = backupBaseDir.appendingPathComponent("cfg_\(configDestURL.lastPathComponent)")
-                    try? fm.copyItem(at: configDestURL, to: backupDest)
-                    backupMap[configDestURL.path] = backupDest.path
-                    try? fm.removeItem(at: configDestURL)
+                let configName = patch.configFileName ?? "localconfig.json"
+                let configSubPath = (patch.configTargetPath ?? "Documents").trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                let configRelDir = configSubPath.isEmpty ? "Documents" : configSubPath
+                let configFolder = containerRootURL.appendingPathComponent(configRelDir, isDirectory: true)
+                
+                if !fm.fileExists(atPath: configFolder.path) {
+                    try fm.createDirectory(at: configFolder, withIntermediateDirectories: true)
+                    createdDirectories.append(configFolder.path)
                 }
                 
-                try fm.copyItem(at: tempConfigURL, to: configDestURL)
-                try? fm.setAttributes([.posixPermissions: 0o777], ofItemAtPath: configDestURL.path)
-                injectedPaths.append(configDestURL.path)
+                let configTargetURL = configFolder.appendingPathComponent(configName)
+                
+                if fm.fileExists(atPath: configTargetURL.path) {
+                    let backupFile = backupDir.appendingPathComponent("cfg_\(UUID().uuidString).orig")
+                    try fm.copyItem(at: configTargetURL, to: backupFile)
+                    backupMap[configTargetURL.path] = backupFile.path
+                }
+                
+                try atomicWrite(configData, to: configTargetURL, preservingExistingAttributes: true)
+                
+                let writtenDigest = try digestFile(configTargetURL)
+                let expectedDigest = digestData(configData)
+                guard writtenDigest == expectedDigest else {
+                    throw PatchError.applyFailed("Xác thực checksum thất bại cho \(configName)")
+                }
+                
+                injectedPaths.append(configTargetURL.path)
             }
         }
         
-        // 4. Lưu lại danh sách file đã nạp vào manifest
+        // 4. Lưu lại bản ghi manifest
         let record = InjectionRecord(
             bundleId: targetBundleId,
             timestamp: Date().timeIntervalSince1970,
             patchTitle: patch.displayName,
             injectedPaths: injectedPaths,
-            backupMap: backupMap
+            backupMap: backupMap,
+            createdDirectories: createdDirectories
         )
         saveInjectionRecord(record)
         
-        progressHandler(1.0, "Đã nạp thành công vào Documents!")
+        progressHandler(1.0, "Đã nạp thành công chuẩn 3105-2.0!")
     }
     
     // MARK: - Uninjector (Xóa Sạch Không Còn Dấu Vết)
     
-    /// Xóa sạch toàn bộ các file vừa nạp và khôi phục file gốc nếu có sao lưu
+    /// Khôi phục file gốc và xóa sạch các file đã nạp mà không để lại bất kỳ dấu vết nào
     @discardableResult
     func uninjectPatch(game: Game) throws -> Int {
         let bundleId = game.bundleId
         guard let record = getInjectionRecord(bundleId: bundleId) else {
-            // Không có record nhưng vẫn quét dọn folder backup nếu có
-            if let container = GameDetectionService.shared.resolveAppContainer(bundleId: bundleId) {
-                let backupDir = URL(fileURLWithPath: container).appendingPathComponent("Documents/Zev_Backups")
-                try? fm.removeItem(at: backupDir)
-            }
             return 0
         }
         
         var processedCount = 0
         
-        // 1. Duyệt qua toàn bộ file đã nạp
+        // 1. Khôi phục hoặc xóa từng file đã nạp
         for filePath in record.injectedPaths {
-            // Kiểm tra có bản sao lưu trước đó không
+            let targetURL = URL(fileURLWithPath: filePath)
+            
             if let backupPath = record.backupMap[filePath], fm.fileExists(atPath: backupPath) {
-                // Khôi phục file gốc
-                try? fm.removeItem(atPath: filePath)
-                try? fm.moveItem(atPath: backupPath, toPath: filePath)
-                try? fm.setAttributes([.posixPermissions: 0o777], ofItemAtPath: filePath)
+                // Có file gốc -> Khôi phục atomic
+                let backupURL = URL(fileURLWithPath: backupPath)
+                try? atomicCopy(backupURL, to: targetURL)
                 processedCount += 1
             } else {
-                // Không có backup -> Xóa hoàn toàn file đã nạp
+                // Không có file gốc -> Xóa bỏ hoàn toàn
                 if fm.fileExists(atPath: filePath) {
-                    try? fm.removeItem(atPath: filePath)
+                    try? fm.removeItem(at: targetURL)
                     processedCount += 1
                 }
             }
         }
         
-        // 2. Xóa sạch toàn bộ thư mục Zev_Backups
-        if let container = GameDetectionService.shared.resolveAppContainer(bundleId: bundleId) {
-            let backupDir = URL(fileURLWithPath: container).appendingPathComponent("Documents/Zev_Backups")
-            try? fm.removeItem(at: backupDir)
+        // 2. Dọn dẹp các thư mục rỗng được tạo mới
+        for dirPath in record.createdDirectories.reversed() {
+            let dirURL = URL(fileURLWithPath: dirPath)
+            if let contents = try? fm.contentsOfDirectory(atPath: dirPath), contents.isEmpty {
+                try? fm.removeItem(at: dirURL)
+            }
         }
         
-        // 3. Xóa bản ghi manifest
+        // 3. Dọn dẹp thư mục sao lưu trong Application Support của Zev
+        if let appSupport = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false) {
+            let sessionDir = appSupport
+                .appendingPathComponent("Zev_Backups", isDirectory: true)
+                .appendingPathComponent(bundleId, isDirectory: true)
+            try? fm.removeItem(at: sessionDir)
+        }
+        
+        // 4. Xóa bản ghi manifest
         clearInjectionRecord(bundleId: bundleId)
         
         return processedCount
-    }
-    
-    // MARK: - Legacy Feature Patch Support
-    
-    /// Hỗ trợ nạp feature riêng lẻ nếu người dùng chọn theo danh mục
-    func applyFeaturePatch(
-        game: Game,
-        feature: Feature,
-        progressHandler: @escaping (Double, String) -> Void
-    ) async throws {
-        guard let fileId = feature.fileId else {
-            throw PatchError.fileDownloadFailed("Chức năng này chưa có file được gán trên máy chủ.")
-        }
-        
-        let patch = ActiveGamePatch(
-            id: feature.id,
-            displayName: feature.displayName,
-            status: feature.status.rawValue,
-            fileId: fileId,
-            fileName: feature.fileName ?? "patch_file",
-            fileSize: feature.fileSize ?? 0,
-            targetPath: feature.targetPath ?? "Documents/",
-            checksumSha256: feature.checksumSha256,
-            filePassword: feature.filePassword,
-            configFileId: feature.configFileId,
-            configFileName: feature.configFileName,
-            configFileSize: nil,
-            configTargetPath: "Documents/"
-        )
-        
-        try await applyActivePatch(game: game, patch: patch, progressHandler: progressHandler)
     }
     
     // MARK: - Setup Antiban (sing-box)
