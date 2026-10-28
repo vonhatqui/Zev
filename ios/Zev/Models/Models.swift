@@ -63,7 +63,7 @@ struct DeviceInfo: Decodable {
 
 // MARK: - App Config
 
-struct AppConfiguration: Decodable {
+struct AppConfiguration: Codable {
     let config: [String: String]
     let iosCompatibility: [IOSCompatibility]
     let serverTime: String?
@@ -75,7 +75,7 @@ struct AppConfiguration: Decodable {
     }
 }
 
-struct IOSCompatibility: Decodable {
+struct IOSCompatibility: Codable {
     let iosVersion: String
     let status: String  // "supported" | "unsupported" | "partial"
     let note: String?

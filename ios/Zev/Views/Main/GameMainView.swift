@@ -551,7 +551,7 @@ struct GameMainView: View {
         } else if slug.contains("modskin") {
             Image(systemName: "tshirt.fill")
                 .font(.system(size: 20))
-                .foregroundColor(ZevTheme.Colors.secondary)
+                .foregroundColor(ZevTheme.Colors.info)
         } else {
             Image(systemName: "shield.checkerboard")
                 .font(.system(size: 20))
@@ -567,12 +567,12 @@ struct GameMainView: View {
         
         Task {
             do {
-                let catRes = try await APIService.shared.fetchCategories(gameId: game.id)
-                let featRes = try await APIService.shared.fetchFeatures(gameId: game.id)
+                let catRes = try await APIService.shared.fetchCategories(for: game.id)
+                let featList = try await APIService.shared.fetchFeatures(for: game.id)
                 
                 await MainActor.run {
                     self.categories = catRes.categories
-                    self.features = featRes.features
+                    self.features = featList
                     self.isLoading = false
                 }
             } catch {

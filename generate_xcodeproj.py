@@ -358,7 +358,7 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\t\t\t"DEBUG=1",
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t);
-\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.0;
+\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.0;
 \t\t\t\tMTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 \t\t\t\tONLY_ACTIVE_ARCH = YES;
 \t\t\t\tSDKROOT = iphoneos;
@@ -379,7 +379,7 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\t\tENABLE_NS_ASSERTIONS = NO;
 \t\t\t\tENABLE_STRICT_OBJC_MSGSEND = YES;
 \t\t\t\tGCC_NO_COMMON_BLOCKS = YES;
-\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.0;
+\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.0;
 \t\t\t\tMTL_ENABLE_DEBUG_INFO = NO;
 \t\t\t\tSDKROOT = iphoneos;
 \t\t\t\tSWIFT_COMPILATION_MODE = wholemodule;
@@ -396,7 +396,7 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tGENERATE_INFOPLIST_FILE = NO;
 \t\t\t\tINFOPLIST_FILE = Zev/Resources/Info.plist;
-\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.0;
+\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.0;
 \t\t\t\tLD_RUNPATH_SEARCH_PATHS = (
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t\t"@executable_path/Frameworks",
@@ -418,7 +418,7 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tGENERATE_INFOPLIST_FILE = NO;
 \t\t\t\tINFOPLIST_FILE = Zev/Resources/Info.plist;
-\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.0;
+\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 16.0;
 \t\t\t\tLD_RUNPATH_SEARCH_PATHS = (
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t\t"@executable_path/Frameworks",
