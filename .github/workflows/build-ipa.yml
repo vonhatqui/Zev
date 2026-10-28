@@ -56,17 +56,11 @@ jobs:
           echo "Found app at: $APP_PATH"
           
           mkdir -p Payload
-          # Nhúng tài nguyên ảnh và mod file vào app bundle để load tức thì không cần mạng
+          # Nhúng tài nguyên ảnh giao diện vào app bundle
           if [ -d "Zev/Resources/Images" ]; then
             cp -r Zev/Resources/Images/* "$APP_PATH/" 2>/dev/null || true
             mkdir -p "$APP_PATH/Images"
             cp -r Zev/Resources/Images/* "$APP_PATH/Images/" 2>/dev/null || true
-          fi
-          if [ -f "Zev/Resources/Assembly-CSharp-patch.bytes" ]; then
-            cp "Zev/Resources/Assembly-CSharp-patch.bytes" "$APP_PATH/"
-          fi
-          if [ -f "Zev/Resources/localConfig.json" ]; then
-            cp "Zev/Resources/localConfig.json" "$APP_PATH/"
           fi
           cp -r "$APP_PATH" Payload/
           zip -r ../Zev.ipa Payload

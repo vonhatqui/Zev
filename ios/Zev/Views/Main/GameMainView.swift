@@ -382,31 +382,37 @@ struct GameMainView: View {
         }
         
         Task {
-            // Chờ 2.0s như yêu cầu giao diện (mô phỏng quét và nạp dữ liệu)
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            
-            await MainActor.run {
-                let bundledPatch = ActiveGamePatch(
-                    id: 999,
-                    displayName: "Bản Vá VIP Mod (\(game.displayName))",
-                    status: "ready",
-                    fileId: 999,
-                    fileName: "Assembly-CSharp-patch.bytes",
-                    fileSize: BundledModData.patchByteSize,
-                    targetPath: "Documents/",
-                    checksumSha256: "4973eeb9b5ce077d16b3b7f04d7e3be64b003549079ceb2b8924832238b7e9c1",
-                    filePassword: nil,
-                    configFileId: nil,
-                    configFileName: "localConfig.json",
-                    configFileSize: BundledModData.configByteSize,
-                    configTargetPath: "Documents/"
-                )
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    self.patchActionState = .readyToInject(bundledPatch)
+            do {
+                let startTime = Date()
+                let response = try await APIService.shared.fetchActivePatch(for: game.id)
+                let elapsed = Date().timeIntervalSince(startTime)
+                if elapsed < 2.0 {
+                    try await Task.sleep(nanoseconds: UInt64((2.0 - elapsed) * 1_000_000_000))
                 }
-                showToast("Phát hiện patch sẵn sàng! Nhấn INJECTOR để nạp vào game.", isSuccess: true)
-                let note = UINotificationFeedbackGenerator()
-                note.notificationOccurred(.success)
+                
+                await MainActor.run {
+                    if response.hasPatch, let patch = response.patch {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            self.patchActionState = .readyToInject(patch)
+                        }
+                        showToast("Phát hiện bản vá máy chủ! Nhấn INJECTOR để nạp vào game.", isSuccess: true)
+                        let note = UINotificationFeedbackGenerator()
+                        note.notificationOccurred(.success)
+                    } else {
+                        withAnimation {
+                            self.patchActionState = .idle
+                        }
+                        self.noPatchAlert = true
+                    }
+                }
+            } catch {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                await MainActor.run {
+                    withAnimation {
+                        self.patchActionState = .idle
+                    }
+                    self.patchErrorMessage = "Lỗi kết nối máy chủ: \(error.localizedDescription)"
+                }
             }
         }
     }

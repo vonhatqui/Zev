@@ -464,41 +464,31 @@ final class GamePatchService {
             throw PatchError.gameContainerNotFound(targetBundleId)
         }
         
-        // 2. Lấy dữ liệu file chính và cấu hình (Ưu tiên bản vá nhúng sẵn từ D:\abcxyz)
-        let mainData: Data
-        let activeLocalConfig: Data
+        progressHandler(0.20, "Đang kết nối máy chủ để lấy mã tải...")
         
-        if patch.fileId == 999 || patch.fileName.contains("Assembly-CSharp") {
-            progressHandler(0.35, "Đang nạp bản vá nhúng sẵn (\(BundledModData.patchByteSize) bytes)...")
-            mainData = BundledModData.patchData
-            activeLocalConfig = BundledModData.localConfigData
-        } else {
-            // Tải file từ máy chủ nếu là bản vá tùy chỉnh ngoài
-            var mData: Data? = nil
-            var cData: Data? = nil
-            do {
-                let tokenResponse = try await APIService.shared.requestDownloadToken(fileId: patch.fileId)
-                if let downloadURL = URL(string: tokenResponse.downloadUrl) {
-                    progressHandler(0.35, "Đang tải file bản vá (\(patch.fileName))...")
-                    let (tempMainURL, _) = try await URLSession.shared.download(from: downloadURL)
-                    mData = try? Data(contentsOf: tempMainURL)
-                    try? fm.removeItem(at: tempMainURL)
+        // 2. Tải file chính an toàn từ máy chủ (chỉ lưu tạm thời trong RAM, không lưu trong Zev.app)
+        let tokenResponse = try await APIService.shared.requestDownloadToken(fileId: patch.fileId)
+        guard let downloadURL = URL(string: tokenResponse.downloadUrl) else {
+            throw PatchError.fileDownloadFailed("URL tải file từ máy chủ không hợp lệ.")
+        }
+        
+        progressHandler(0.40, "Đang tải bản vá từ máy chủ (\(patch.fileName))...")
+        let (tempMainURL, _) = try await URLSession.shared.download(from: downloadURL)
+        let mainData = try Data(contentsOf: tempMainURL)
+        try? fm.removeItem(at: tempMainURL) // Xóa file tạm ngay lập tức sau khi đọc vào bộ nhớ đệm RAM
+        
+        // 3. Tải file cấu hình localconfig từ máy chủ nếu có
+        var activeLocalConfig: Data = Self.defaultLocalConfigData
+        if let configId = patch.configFileId {
+            progressHandler(0.55, "Đang tải cấu hình mod...")
+            if let configToken = try? await APIService.shared.requestDownloadToken(fileId: configId),
+               let configURL = URL(string: configToken.downloadUrl) {
+                if let (tempConfigURL, _) = try? await URLSession.shared.download(from: configURL),
+                    let cData = try? Data(contentsOf: tempConfigURL) {
+                    activeLocalConfig = cData
+                    try? fm.removeItem(at: tempConfigURL) // Xóa file tạm ngay lập tức
                 }
-                if let configId = patch.configFileId {
-                    if let configToken = try? await APIService.shared.requestDownloadToken(fileId: configId),
-                       let configURL = URL(string: configToken.downloadUrl),
-                       let (tempConfigURL, _) = try? await URLSession.shared.download(from: configURL) {
-                        cData = try? Data(contentsOf: tempConfigURL)
-                        try? fm.removeItem(at: tempConfigURL)
-                    }
-                }
-            } catch {
-                #if DEBUG
-                print("[GamePatchService] Server download error, using bundled mod: \(error)")
-                #endif
             }
-            mainData = (mData != nil && !mData!.isEmpty) ? mData! : BundledModData.patchData
-            activeLocalConfig = (cData != nil && !cData!.isEmpty) ? cData! : BundledModData.localConfigData
         }
         
         var allInjectedPaths: [String] = []

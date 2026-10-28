@@ -36,7 +36,6 @@
 		A10500012D1E000100000001 /* mcm_bridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A10500022D1E000100000002 /* mcm_bridge.m */; };
 		A10500062D1E000100000006 /* PatchProjectModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10500072D1E000100000007 /* PatchProjectModels.swift */; };
 		A10500082D1E000100000008 /* PatchPackageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10500092D1E000100000009 /* PatchPackageCodec.swift */; };
-		B10500102D1E000100000010 /* BundledModData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10500112D1E000100000011 /* BundledModData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,7 +43,6 @@
 		FE943F8E783E5CE196D0286B /* ZevApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ZevApp.swift"; sourceTree = "<group>"; };
 		2536D51F570CD4094CD44877 /* ZevTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ZevTheme.swift"; sourceTree = "<group>"; };
 		49EDC35C5C652C3E13790137 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppConfig.swift"; sourceTree = "<group>"; };
-		B10500112D1E000100000011 /* BundledModData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BundledModData.swift"; sourceTree = "<group>"; };
 		22252D31B1685E903FBE49BA /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
 		26A8DA9A483620481D42BCC6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
 		79B7FA8492057046F5A8494F /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService.swift"; sourceTree = "<group>"; };
@@ -141,7 +139,6 @@
 			isa = PBXGroup;
 			children = (
 				49EDC35C5C652C3E13790137 /* AppConfig.swift */,
-				B10500112D1E000100000011 /* BundledModData.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -352,7 +349,6 @@
 				A10500012D1E000100000001 /* mcm_bridge.m in Sources */,
 				A10500062D1E000100000006 /* PatchProjectModels.swift in Sources */,
 				A10500082D1E000100000008 /* PatchPackageCodec.swift in Sources */,
-				B10500102D1E000100000010 /* BundledModData.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -412,7 +408,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Zev/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -420,7 +416,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.12;
+				MARKETING_VERSION = 1.0.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.apple.mobile.MobileHouseArrest";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -435,7 +431,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Zev/Resources/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -443,7 +439,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.12;
+				MARKETING_VERSION = 1.0.13;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.apple.mobile.MobileHouseArrest";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
