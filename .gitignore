@@ -1,0 +1,30 @@
+# macOS / Xcode
+.DS_Store
+*.swp
+*~
+xcuserdata/
+DerivedData/
+.build/
+*.xcuserstate
+*.xcscmblueprint
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.swiftpm/
+Packages/
+
+# Server / PHP
+server/config/config.php
+server/uploads/files/*
+!server/uploads/files/.gitkeep
+server/uploads/temp/*
+!server/uploads/temp/.gitkeep
+server/logs/*
+!server/logs/.gitkeep
+
+# Environment & Credentials
+.env
+*.log
