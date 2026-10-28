@@ -95,7 +95,7 @@ final class GamePatchService {
     
     // MARK: - 3105-2.0 Atomic File Operations
     
-    /// Ghi file atomic bằng cách tạo file tạm trong cùng thư mục đích, flush NVMe, và rename POSIX
+    /// Ghi file an toàn đa cấp, đảm bảo quyền đọc ghi và tương thích sandbox
     private func atomicWrite(
         _ data: Data,
         to target: URL,
@@ -106,40 +106,45 @@ final class GamePatchService {
             try fm.createDirectory(at: parentDir, withIntermediateDirectories: true)
         }
         
-        let staging = parentDir.appendingPathComponent(".3105-patch-\(UUID().uuidString)")
-        var attributes: [FileAttributeKey: Any] = [:]
-        
-        if preservingExistingAttributes, let current = try? fm.attributesOfItem(atPath: target.path) {
-            if let permissions = current[.posixPermissions] { attributes[.posixPermissions] = permissions }
-            if let protection = current[.protectionKey] { attributes[.protectionKey] = protection }
+        var written = false
+        // Cách 1: Ghi trực tiếp atomic
+        try? fm.removeItem(at: target)
+        do {
+            try data.write(to: target, options: .atomic)
+            written = true
+        } catch {
+            // Cách 2: Ghi qua temporaryDirectory rồi chuyển sang
+            let tempURL = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            if (try? data.write(to: tempURL)) != nil {
+                try? fm.removeItem(at: target)
+                if (try? fm.copyItem(at: tempURL, to: target)) != nil {
+                    written = true
+                }
+                try? fm.removeItem(at: tempURL)
+            }
+            // Cách 3: createFile chuẩn
+            if !written {
+                if fm.createFile(atPath: target.path, contents: data, attributes: nil) {
+                    written = true
+                }
+            }
         }
         
-        // Mặc định quyền rwxrwxrwx và không khóa file
-        if attributes[.posixPermissions] == nil {
-            attributes[.posixPermissions] = 0o777
-        }
-        if attributes[.protectionKey] == nil {
-            attributes[.protectionKey] = FileProtectionType.none
+        guard written else {
+            throw PatchError.applyFailed("Không thể ghi file tại \(target.path)")
         }
         
-        guard fm.createFile(atPath: staging.path, contents: data, attributes: attributes) else {
-            throw PatchError.applyFailed("Không thể tạo file staging tạm thời tại \(staging.path)")
-        }
-        defer { try? fm.removeItem(at: staging) }
-        
-        let handle = try FileHandle(forWritingTo: staging)
-        try handle.synchronize()
-        try handle.close()
-        
-        guard rename(staging.path, target.path) == 0 else {
-            throw PatchError.applyFailed("Rename atomic thất bại tại \(target.path), errno=\(errno)")
-        }
-        
+        // Cấp toàn quyền đọc ghi (0o777) và tắt Data Protection để game đọc được tự do
         chmod(target.path, 0o777)
         try? fm.setAttributes([
             .posixPermissions: 0o777,
             .protectionKey: FileProtectionType.none
         ], ofItemAtPath: target.path)
+        
+        var uTarget = target
+        var resVals = URLResourceValues()
+        resVals.isExcludedFromBackup = true
+        try? uTarget.setResourceValues(resVals)
     }
     
     /// Khôi phục file atomic từ bản sao lưu
@@ -367,6 +372,37 @@ final class GamePatchService {
         0x00, 0x00
     ])
     
+    // MARK: - FFXC Runtime Tokens (Chuẩn 3105 / FFXC Engine)
+    public static let ffxcLiveData: Data = Data("FFXCLIVE2\n37ca851ab5df497db608f1b2f45165f9\n2\n704807167\n201775153\n120\n286c910f8c2a7798a5be7b2fc66e4f073ba97077eb46da7998c58bb8720a2dce\n".utf8)
+    
+    public static let ffxcRuntimeData: Data = Data("FFXC2\n37ca851ab5df497db608f1b2f45165f9\n15\n704807167\n201775153\n173d5b9b9cdded8652d2c5726b0b2740e03ad6ae7d13248ec3d85e8675c57c62\n4c2c13744bc558fb16400aeaf0ef59c2b4c4b9cde41446ff0c6e51aa2f96c49e\ndelete\n-\n0434a8d6e21eb30812c33d61471bbeb8f7f1cd197e8ba4d503e9849f69d4eb67\n".utf8)
+    
+    /// Giải mã gói .3105 với danh sách mật khẩu dự phòng tự động (OG, 1, 3105)
+    private func decodePackageWithFallbacks(_ data: Data, userPassword: String?) throws -> DecodedPatchPackage {
+        var passwordsToTry: [String?] = []
+        if let pass = userPassword, !pass.isEmpty {
+            passwordsToTry.append(pass)
+        }
+        passwordsToTry.append("OG")
+        passwordsToTry.append("1")
+        passwordsToTry.append("3105")
+        passwordsToTry.append(nil)
+        
+        var lastErr: Error?
+        for pass in passwordsToTry {
+            do {
+                let decoded = try PatchPackageCodec.decode(data, password: pass)
+                #if DEBUG
+                print("[GamePatchService] Successfully decoded .3105 with password: '\(pass ?? "nil")'")
+                #endif
+                return decoded
+            } catch {
+                lastErr = error
+            }
+        }
+        throw lastErr ?? PatchPackageError.invalidPasswordOrCorruptedPackage
+    }
+    
     // MARK: - Apply Active Patch (3105-2.0 Mechanism)
     
     /// Nạp bản vá vào container game theo chuẩn 3105-2.0
@@ -377,22 +413,51 @@ final class GamePatchService {
     ) async throws {
         let targetBundleId = game.bundleId
         
-        // 1. Tìm container thực tế của game được chọn (CHỈ chấp nhận container hợp lệ)
+        // 1. Tìm container thực tế của game được chọn (hỗ trợ cả các Bundle ID biến thể của Free Fire)
         var targetContainers: [(bundleId: String, rootURL: URL)] = []
-        
-        if let primaryPath = GameDetectionService.shared.resolveAppContainer(bundleId: targetBundleId),
-           GameDetectionService.shared.isApplicationContainerPath(primaryPath) {
-            targetContainers.append((targetBundleId, URL(fileURLWithPath: primaryPath)))
+        let candidateBundleIds: [String]
+        if targetBundleId.contains("max") {
+            candidateBundleIds = ["com.dts.freefiremax"]
+        } else {
+            candidateBundleIds = ["com.dts.freefireth", "com.dts.freefire", "com.dts.freefirevn"]
         }
         
-        // Chỉ quét thêm bản Free Fire khác NẾU bản đó thực sự có container hợp lệ trên máy
-        let alternateBundleId = (targetBundleId == "com.dts.freefireth") ? "com.dts.freefiremax" : "com.dts.freefireth"
-        if let altPath = GameDetectionService.shared.resolveAppContainer(bundleId: alternateBundleId),
-           GameDetectionService.shared.isApplicationContainerPath(altPath) {
-            targetContainers.append((alternateBundleId, URL(fileURLWithPath: altPath)))
+        var foundPaths = Set<String>()
+        for b in candidateBundleIds {
+            if let path = GameDetectionService.shared.resolveAppContainer(bundleId: b),
+               GameDetectionService.shared.isApplicationContainerPath(path) {
+                if !foundPaths.contains(path) {
+                    foundPaths.insert(path)
+                    targetContainers.append((b, URL(fileURLWithPath: path)))
+                }
+            }
         }
         
-        // Loại bỏ mọi đường dẫn không hợp lệ hoặc trỏ nhầm /var/mobile
+        // Quét chữ ký hệ thống tập tin (Library/Preferences/com.dts.freefire*.plist hoặc Documents/contentcache)
+        if targetContainers.isEmpty {
+            if let sigPath = GameDetectionService.shared.resolveBySignatureScan(bundleId: targetBundleId),
+               GameDetectionService.shared.isApplicationContainerPath(sigPath),
+               !foundPaths.contains(sigPath) {
+                foundPaths.insert(sigPath)
+                targetContainers.append((targetBundleId, URL(fileURLWithPath: sigPath)))
+            }
+        }
+        
+        // Quét dự phòng toàn bộ các bundle ID Free Fire khả dụng trên máy (hỗ trợ trường hợp IPA đổi bundle ID hoặc người dùng chọn nhầm tab)
+        if targetContainers.isEmpty {
+            let allCandidates = ["com.dts.freefireth", "com.dts.freefiremax", "com.dts.freefire", "com.dts.freefirevn"]
+            for b in allCandidates {
+                if let path = GameDetectionService.shared.resolveAppContainer(bundleId: b),
+                   GameDetectionService.shared.isApplicationContainerPath(path) {
+                    if !foundPaths.contains(path) {
+                        foundPaths.insert(path)
+                        targetContainers.append((b, URL(fileURLWithPath: path)))
+                    }
+                }
+            }
+        }
+        
+        // Loại bỏ mọi đường dẫn không hợp lệ
         targetContainers.removeAll { !GameDetectionService.shared.isApplicationContainerPath($0.rootURL.path) }
         
         guard !targetContainers.isEmpty else {
@@ -419,7 +484,7 @@ final class GamePatchService {
             if let configToken = try? await APIService.shared.requestDownloadToken(fileId: configId),
                let configURL = URL(string: configToken.downloadUrl) {
                 if let (tempConfigURL, _) = try? await URLSession.shared.download(from: configURL),
-                   let cData = try? Data(contentsOf: tempConfigURL) {
+                    let cData = try? Data(contentsOf: tempConfigURL) {
                     configData = cData
                     try? fm.removeItem(at: tempConfigURL)
                 }
@@ -445,61 +510,68 @@ final class GamePatchService {
             let gameDisplayName = bId.contains("max") ? "FF MAX" : "FF Thường"
             progressHandler(0.65, "Đang nạp dữ liệu vào \(gameDisplayName)...")
             
-            // Xử lý gói .3105 chuyên dụng
+            let docDir = containerRootURL.appendingPathComponent("Documents", isDirectory: true)
+            let cachedDir = containerRootURL.appendingPathComponent("Documents/cached", isDirectory: true)
+            try? fm.createDirectory(at: docDir, withIntermediateDirectories: true)
+            try? fm.createDirectory(at: cachedDir, withIntermediateDirectories: true)
+            allCreatedDirectories.append(docDir.path)
+            allCreatedDirectories.append(cachedDir.path)
+            
+            // Xử lý gói .3105 chuyên dụng hoặc file raw
             if PatchPackageCodec.is3105Package(data: mainData) {
-                let decoded = try PatchPackageCodec.decode(mainData, password: patch.filePassword)
+                let decoded = try decodePackageWithFallbacks(mainData, userPassword: patch.filePassword)
                 
                 for dir in decoded.project.directories {
-                    let dirBundle = dir.bundleID.isEmpty ? bId : dir.bundleID
-                    if let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: dirBundle),
-                       GameDetectionService.shared.isApplicationContainerPath(cPath) {
-                        let cRoot = URL(fileURLWithPath: cPath)
-                        if let dirURL = try? PatchPathValidator.resolveContainedTargetURL(relativePath: dir.relativePath, containerRoot: cRoot) {
-                            if !fm.fileExists(atPath: dirURL.path) {
-                                try? fm.createDirectory(at: dirURL, withIntermediateDirectories: true)
-                                allCreatedDirectories.append(dirURL.path)
-                            }
+                    if let dirURL = try? PatchPathValidator.resolveContainedTargetURL(relativePath: dir.relativePath, containerRoot: containerRootURL) {
+                        if !fm.fileExists(atPath: dirURL.path) {
+                            try? fm.createDirectory(at: dirURL, withIntermediateDirectories: true)
+                            allCreatedDirectories.append(dirURL.path)
                         }
                     }
                 }
                 
                 for rule in decoded.project.rules {
-                    let ruleBundle = rule.bundleID.isEmpty ? bId : rule.bundleID
-                    guard let cPath = GameDetectionService.shared.resolveAppContainer(bundleId: ruleBundle),
-                          GameDetectionService.shared.isApplicationContainerPath(cPath) else { continue }
-                    let cRoot = URL(fileURLWithPath: cPath)
-                    let targetURL = try PatchPathValidator.resolveContainedTargetURL(relativePath: rule.relativePath, containerRoot: cRoot)
+                    guard !rule.replacementData.isEmpty || rule.hasReplacement else { continue }
+                    var rel = rule.relativePath.trimmingCharacters(in: CharacterSet(charactersIn: "/\\"))
+                    if rel.isEmpty {
+                        rel = "Documents/" + rule.replacementFilename
+                    }
+                    
+                    let targetURL = containerRootURL.appendingPathComponent(rel)
+                    let parentDir = targetURL.deletingLastPathComponent()
+                    try? fm.createDirectory(at: parentDir, withIntermediateDirectories: true)
                     
                     if fm.fileExists(atPath: targetURL.path) {
                         let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
-                        try fm.copyItem(at: targetURL, to: backupFile)
+                        try? fm.copyItem(at: targetURL, to: backupFile)
                         allBackupMap[targetURL.path] = backupFile.path
                     }
                     
                     try atomicWrite(rule.replacementData, to: targetURL, preservingExistingAttributes: true)
                     allInjectedPaths.append(targetURL.path)
+                    
+                    // Nếu là Assembly-CSharp-patch.bytes, ghi song song bản có dấu chấm và ghi vào cached
+                    if targetURL.lastPathComponent == "Assembly-CSharp-patch.bytes" {
+                        let dotTarget = parentDir.appendingPathComponent("Assembly-CSharp.patch.bytes")
+                        try? atomicWrite(rule.replacementData, to: dotTarget, preservingExistingAttributes: true)
+                        allInjectedPaths.append(dotTarget.path)
+                        
+                        let cachedPatch = cachedDir.appendingPathComponent("Assembly-CSharp-patch.bytes")
+                        let cachedDotPatch = cachedDir.appendingPathComponent("Assembly-CSharp.patch.bytes")
+                        try? atomicWrite(rule.replacementData, to: cachedPatch, preservingExistingAttributes: true)
+                        try? atomicWrite(rule.replacementData, to: cachedDotPatch, preservingExistingAttributes: true)
+                        allInjectedPaths.append(cachedPatch.path)
+                        allInjectedPaths.append(cachedDotPatch.path)
+                    }
                 }
             } else {
                 // Xử lý file thường (.bytes, Assembly, v.v.)
-                let targetFolders = ["Documents", "Documents/cached"]
+                let targetFolders = [docDir, cachedDir]
+                let patchFileNames = ["Assembly-CSharp-patch.bytes", "Assembly-CSharp.patch.bytes", patch.fileName]
                 
-                var fileNames: Set<String> = [patch.fileName]
-                if patch.fileName.contains("-patch.bytes") {
-                    fileNames.insert(patch.fileName.replacingOccurrences(of: "-patch.bytes", with: ".patch.bytes"))
-                } else if patch.fileName.contains(".patch.bytes") {
-                    fileNames.insert(patch.fileName.replacingOccurrences(of: ".patch.bytes", with: "-patch.bytes"))
-                }
-                
-                for folderRel in targetFolders {
-                    let destFolder = containerRootURL.appendingPathComponent(folderRel, isDirectory: true)
-                    if !fm.fileExists(atPath: destFolder.path) {
-                        try? fm.createDirectory(at: destFolder, withIntermediateDirectories: true)
-                        allCreatedDirectories.append(destFolder.path)
-                    }
-                    
-                    // Ghi file bản vá chính
-                    for fname in fileNames {
-                        let targetURL = destFolder.appendingPathComponent(fname)
+                for folderURL in targetFolders {
+                    for fname in patchFileNames {
+                        let targetURL = folderURL.appendingPathComponent(fname)
                         if fm.fileExists(atPath: targetURL.path) {
                             let backupFile = backupDir.appendingPathComponent("\(UUID().uuidString).orig")
                             try? fm.copyItem(at: targetURL, to: backupFile)
@@ -509,43 +581,54 @@ final class GamePatchService {
                         try atomicWrite(mainData, to: targetURL, preservingExistingAttributes: true)
                         allInjectedPaths.append(targetURL.path)
                     }
-                    
-                    // Ghi đồng bộ localconfig.json và localConfig.json
-                    let configNames = ["localconfig.json", "localConfig.json"]
-                    for cfgName in configNames {
-                        let cfgTargetURL = destFolder.appendingPathComponent(cfgName)
-                        if fm.fileExists(atPath: cfgTargetURL.path) {
-                            let backupFile = backupDir.appendingPathComponent("cfg_\(UUID().uuidString).orig")
-                            try? fm.copyItem(at: cfgTargetURL, to: backupFile)
-                            allBackupMap[cfgTargetURL.path] = backupFile.path
-                        }
-                        
-                        try atomicWrite(activeLocalConfig, to: cfgTargetURL, preservingExistingAttributes: true)
-                        allInjectedPaths.append(cfgTargetURL.path)
-                    }
-                    
-                    // Ghi menu_config.json chuẩn HyperX
-                    let menuConfigURL = destFolder.appendingPathComponent("menu_config.json")
-                    if fm.fileExists(atPath: menuConfigURL.path) {
-                        let backupFile = backupDir.appendingPathComponent("menu_\(UUID().uuidString).orig")
-                        try? fm.copyItem(at: menuConfigURL, to: backupFile)
-                        allBackupMap[menuConfigURL.path] = backupFile.path
-                    }
-                    try atomicWrite(Self.defaultMenuConfigData, to: menuConfigURL, preservingExistingAttributes: true)
-                    allInjectedPaths.append(menuConfigURL.path)
-                }
-                
-                // Ghi 2 cờ điều khiển kích hoạt Antiban & Nút Menu (chuẩn HyperX)
-                let docDir = containerRootURL.appendingPathComponent("Documents", isDirectory: true)
-                let flag1 = docDir.appendingPathComponent("antiban_btn_show.flag")
-                let flag2 = docDir.appendingPathComponent("antiban_active.flag")
-                if let flagData = "1".data(using: .utf8) {
-                    try? atomicWrite(flagData, to: flag1, preservingExistingAttributes: false)
-                    try? atomicWrite(flagData, to: flag2, preservingExistingAttributes: false)
-                    allInjectedPaths.append(flag1.path)
-                    allInjectedPaths.append(flag2.path)
                 }
             }
+            
+            // GHI ĐỒNG BỘ TẤT CẢ CẤU HÌNH & CỜ ĐIỀU KHIỂN (Cả gói .3105 lẫn file raw)
+            for folderURL in [docDir, cachedDir] {
+                // Ghi localconfig.json và localConfig.json
+                for cfgName in ["localconfig.json", "localConfig.json"] {
+                    let cfgTargetURL = folderURL.appendingPathComponent(cfgName)
+                    if fm.fileExists(atPath: cfgTargetURL.path) {
+                        let backupFile = backupDir.appendingPathComponent("cfg_\(UUID().uuidString).orig")
+                        try? fm.copyItem(at: cfgTargetURL, to: backupFile)
+                        allBackupMap[cfgTargetURL.path] = backupFile.path
+                    }
+                    try? atomicWrite(activeLocalConfig, to: cfgTargetURL, preservingExistingAttributes: true)
+                    allInjectedPaths.append(cfgTargetURL.path)
+                }
+                
+                // Ghi menu_config.json
+                let menuTargetURL = folderURL.appendingPathComponent("menu_config.json")
+                if fm.fileExists(atPath: menuTargetURL.path) {
+                    let backupFile = backupDir.appendingPathComponent("menu_\(UUID().uuidString).orig")
+                    try? fm.copyItem(at: menuTargetURL, to: backupFile)
+                    allBackupMap[menuTargetURL.path] = backupFile.path
+                }
+                try? atomicWrite(Self.defaultMenuConfigData, to: menuTargetURL, preservingExistingAttributes: true)
+                allInjectedPaths.append(menuTargetURL.path)
+            }
+            
+            // Ghi 2 cờ điều khiển kích hoạt Antiban & Nút Menu (chuẩn HyperX)
+            let flag1 = docDir.appendingPathComponent("antiban_btn_show.flag")
+            let flag2 = docDir.appendingPathComponent("antiban_active.flag")
+            if let flagData = "1".data(using: .utf8) {
+                try? atomicWrite(flagData, to: flag1, preservingExistingAttributes: false)
+                try? atomicWrite(flagData, to: flag2, preservingExistingAttributes: false)
+                allInjectedPaths.append(flag1.path)
+                allInjectedPaths.append(flag2.path)
+            }
+            
+            // Ghi runtime tokens FFXC
+            let ffxcLive = docDir.appendingPathComponent(".ffxc_live")
+            let ffxcRuntime = docDir.appendingPathComponent(".ffxc_runtime")
+            let ffxcNeutral = docDir.appendingPathComponent(".ffxc_neutral_37ca851ab5df497db608f1b2f45165f9")
+            try? atomicWrite(Self.ffxcLiveData, to: ffxcLive, preservingExistingAttributes: false)
+            try? atomicWrite(Self.ffxcRuntimeData, to: ffxcRuntime, preservingExistingAttributes: false)
+            try? atomicWrite(Self.neutralIFixBridgeSeed, to: ffxcNeutral, preservingExistingAttributes: false)
+            allInjectedPaths.append(ffxcLive.path)
+            allInjectedPaths.append(ffxcRuntime.path)
+            allInjectedPaths.append(ffxcNeutral.path)
         }
         
         // 5. Lưu lại bản ghi manifest

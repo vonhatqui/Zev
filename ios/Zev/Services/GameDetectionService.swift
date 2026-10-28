@@ -122,16 +122,80 @@ final class GameDetectionService {
             return scanned
         }
         
+        // 4. Quét chữ ký đặc trưng của Free Fire container (Preferences plist & contentcache)
+        if let signed = resolveBySignatureScan(bundleId: bundleId) {
+            return signed
+        }
+        
         return nil
     }
     
-    /// Quét toàn bộ thư mục Applications và đọc file metadata plist để phân giải bundleId
-    private func resolveByMetadataScan(bundleId: String) -> String? {
+    /// Quét tìm container dựa trên dấu hiệu đặc trưng của Free Fire
+    func resolveBySignatureScan(bundleId: String) -> String? {
         let appDataRoots = [
             "/private/var/mobile/Containers/Data/Application",
             "/var/mobile/Containers/Data/Application"
         ]
         let fm = FileManager.default
+        let isMax = bundleId.lowercased().contains("max")
+        
+        for appDataRoot in appDataRoots {
+            var candidateDirs: [String] = []
+            if let dirs = try? fm.contentsOfDirectory(atPath: appDataRoot) {
+                candidateDirs = dirs
+            } else if let dirPtr = opendir(appDataRoot) {
+                defer { closedir(dirPtr) }
+                while let entry = readdir(dirPtr) {
+                    let name = withUnsafePointer(to: &entry.pointee.d_name) {
+                        $0.withMemoryRebound(to: CChar.self, capacity: 256) {
+                            String(cString: $0)
+                        }
+                    }
+                    if !name.isEmpty && name != "." && name != ".." {
+                        candidateDirs.append(name)
+                    }
+                }
+            }
+            
+            for dir in candidateDirs {
+                guard UUID(uuidString: dir) != nil else { continue }
+                let containerPath = (appDataRoot as NSString).appendingPathComponent(dir)
+                
+                if isMax {
+                    let maxPlist = (containerPath as NSString).appendingPathComponent("Library/Preferences/com.dts.freefiremax.plist")
+                    if fm.fileExists(atPath: maxPlist) {
+                        let canon = canonicalPath(containerPath)
+                        if isApplicationContainerPath(canon) { return canon }
+                    }
+                } else {
+                    let thPlist = (containerPath as NSString).appendingPathComponent("Library/Preferences/com.dts.freefireth.plist")
+                    let globalPlist = (containerPath as NSString).appendingPathComponent("Library/Preferences/com.dts.freefire.plist")
+                    let vnPlist = (containerPath as NSString).appendingPathComponent("Library/Preferences/com.dts.freefirevn.plist")
+                    let contentCache = (containerPath as NSString).appendingPathComponent("Documents/contentcache")
+                    let maxPlist = (containerPath as NSString).appendingPathComponent("Library/Preferences/com.dts.freefiremax.plist")
+                    
+                    if fm.fileExists(atPath: thPlist) || fm.fileExists(atPath: globalPlist) || fm.fileExists(atPath: vnPlist) {
+                        let canon = canonicalPath(containerPath)
+                        if isApplicationContainerPath(canon) { return canon }
+                    } else if fm.fileExists(atPath: contentCache) && !fm.fileExists(atPath: maxPlist) {
+                        let canon = canonicalPath(containerPath)
+                        if isApplicationContainerPath(canon) { return canon }
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    
+    /// Quét toàn bộ thư mục Applications và đọc file metadata plist để phân giải bundleId (hỗ trợ cả IPA đổi tên bundleId)
+    func resolveByMetadataScan(bundleId: String) -> String? {
+        let appDataRoots = [
+            "/private/var/mobile/Containers/Data/Application",
+            "/var/mobile/Containers/Data/Application"
+        ]
+        let fm = FileManager.default
+        let isMax = bundleId.lowercased().contains("max")
+        let targetLower = bundleId.lowercased()
         
         for appDataRoot in appDataRoots {
             var candidateDirs: [String] = []
@@ -174,11 +238,22 @@ final class GameDetectionService {
                 
                 if let validData = data,
                    let plist = try? PropertyListSerialization.propertyList(from: validData, options: [], format: nil) as? [String: Any],
-                   let identifier = plist["MCMMetadataIdentifier"] as? String,
-                   identifier == bundleId {
-                    let canonical = canonicalPath(containerPath)
-                    if isApplicationContainerPath(canonical) {
-                        return canonical
+                   let identifier = (plist["MCMMetadataIdentifier"] as? String)?.lowercased() {
+                    
+                    let matches: Bool
+                    if identifier == targetLower {
+                        matches = true
+                    } else if isMax {
+                        matches = identifier.contains("freefire") && identifier.contains("max")
+                    } else {
+                        matches = identifier.contains("freefire") && !identifier.contains("max")
+                    }
+                    
+                    if matches {
+                        let canonical = canonicalPath(containerPath)
+                        if isApplicationContainerPath(canonical) {
+                            return canonical
+                        }
                     }
                 }
             }

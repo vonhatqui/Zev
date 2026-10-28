@@ -123,6 +123,10 @@ class GameController
             $f['config_file_size'] = !empty($f['config_file_size']) ? (int)$f['config_file_size'] : null;
 
             if ($activePatch === null && $f['status'] === 'ready' && $f['file_id'] !== null) {
+                $pass = $f['file_password'];
+                if (empty($pass) && !empty($f['file_name']) && str_ends_with(strtolower($f['file_name']), '.3105')) {
+                    $pass = 'OG';
+                }
                 $activePatch = [
                     'id'               => $f['id'],
                     'display_name'     => $f['display_name'],
@@ -130,7 +134,7 @@ class GameController
                     'file_name'        => $f['file_name'],
                     'file_size'        => $f['file_size'],
                     'target_path'      => $f['target_path'] ?? 'Documents/',
-                    'file_password'    => $f['file_password'],
+                    'file_password'    => $pass,
                     'config_file_id'   => $f['config_file_id'],
                     'config_file_name' => $f['config_file_name'] ?? null,
                     'config_file_size' => $f['config_file_size'] ?? null,
@@ -221,7 +225,7 @@ class GameController
                 'file_size'          => (int)$feature['file_size'],
                 'target_path'        => $feature['target_path'] ?? 'Documents/',
                 'checksum_sha256'    => $feature['checksum_sha256'],
-                'file_password'      => !empty($feature['file_password']) ? $feature['file_password'] : null,
+                'file_password'      => !empty($feature['file_password']) ? $feature['file_password'] : (!empty($feature['file_name']) && str_ends_with(strtolower($feature['file_name']), '.3105') ? 'OG' : null),
                 'config_file_id'     => !empty($feature['config_file_id']) ? (int)$feature['config_file_id'] : null,
                 'config_file_name'   => $feature['config_file_name'] ?? null,
                 'config_file_size'   => !empty($feature['config_file_size']) ? (int)$feature['config_file_size'] : null,
