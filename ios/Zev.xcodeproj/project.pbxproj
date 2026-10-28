@@ -33,6 +33,9 @@
 		DC78A3F3F715BC91FFBEAC58 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7399BCA8DB3BC30684B123A1 /* SplashView.swift */; };
 		66AB32AE28DD410EE42DFC37 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662F2555E34B3C26B5F8A2B6 /* ProfileView.swift */; };
 		F0FDDD96BA90E9E0B883356F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 485A1A7F7552EEDC7D02585E /* SettingsView.swift */; };
+		A10500012D1E000100000001 /* mcm_bridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A10500022D1E000100000002 /* mcm_bridge.m */; };
+		A10500062D1E000100000006 /* PatchProjectModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10500072D1E000100000007 /* PatchProjectModels.swift */; };
+		A10500082D1E000100000008 /* PatchPackageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10500092D1E000100000009 /* PatchPackageCodec.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +67,11 @@
 		7399BCA8DB3BC30684B123A1 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SplashView.swift"; sourceTree = "<group>"; };
 		662F2555E34B3C26B5F8A2B6 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileView.swift"; sourceTree = "<group>"; };
 		485A1A7F7552EEDC7D02585E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView.swift"; sourceTree = "<group>"; };
+		A10500022D1E000100000002 /* mcm_bridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "mcm_bridge.m"; sourceTree = "<group>"; };
+		A10500032D1E000100000003 /* mcm_bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "mcm_bridge.h"; sourceTree = "<group>"; };
+		A10500042D1E000100000004 /* Zev-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Zev-Bridging-Header.h"; sourceTree = "<group>"; };
+		A10500072D1E000100000007 /* PatchProjectModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PatchProjectModels.swift"; sourceTree = "<group>"; };
+		A10500092D1E000100000009 /* PatchPackageCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PatchPackageCodec.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,13 +106,24 @@
 			children = (
 				200DF0D2B03A28A082772835 /* App */,
 				7D1D2FCBD23F3E3A32509398 /* Config */,
+				A10500052D1E000100000005 /* Exploit */,
 				E74C4842E34193B48C4BB865 /* Models */,
 				35310B5F7B58757F6BE08114 /* Resources */,
 				8BAA9ED26F64CAEA84168990 /* Services */,
 				B182D25A581AF8261F8A861E /* ViewModels */,
 				575E908655668B293FC62796 /* Views */,
+				A10500042D1E000100000004 /* Zev-Bridging-Header.h */,
 			);
 			path = Zev;
+			sourceTree = "<group>";
+		};
+		A10500052D1E000100000005 /* Exploit */ = {
+			isa = PBXGroup;
+			children = (
+				A10500032D1E000100000003 /* mcm_bridge.h */,
+				A10500022D1E000100000002 /* mcm_bridge.m */,
+			);
+			path = Exploit;
 			sourceTree = "<group>";
 		};
 		200DF0D2B03A28A082772835 /* App */ = {
@@ -128,6 +147,7 @@
 			isa = PBXGroup;
 			children = (
 				22252D31B1685E903FBE49BA /* Models.swift */,
+				A10500072D1E000100000007 /* PatchProjectModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -148,6 +168,7 @@
 				F0C96F2D95A650D8CDB37C51 /* GameDetectionService.swift */,
 				D81031AEA5E5839959325197 /* GamePatchService.swift */,
 				5C2ABAB703A3EF83F8C96F32 /* KeychainService.swift */,
+				A10500092D1E000100000009 /* PatchPackageCodec.swift */,
 				DB41F8E4DC0570DC169727D2 /* SupportPolicy.swift */,
 			);
 			path = Services;
@@ -325,6 +346,9 @@
 				DC78A3F3F715BC91FFBEAC58 /* SplashView.swift in Sources */,
 				66AB32AE28DD410EE42DFC37 /* ProfileView.swift in Sources */,
 				F0FDDD96BA90E9E0B883356F /* SettingsView.swift in Sources */,
+				A10500012D1E000100000001 /* mcm_bridge.m in Sources */,
+				A10500062D1E000100000006 /* PatchProjectModels.swift in Sources */,
+				A10500082D1E000100000008 /* PatchPackageCodec.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,6 +420,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.apple.mobile.MobileHouseArrest";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Zev/Zev-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -418,6 +443,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.apple.mobile.MobileHouseArrest";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Zev/Zev-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

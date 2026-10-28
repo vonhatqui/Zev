@@ -76,10 +76,20 @@ final class GameDetectionService {
     
     /// Tìm đường dẫn Data Container của Bundle ID và kích hoạt quyền truy cập sandbox
     func resolveAppContainer(bundleId: String) -> String? {
-        // 1. Thử qua MobileContainerManager (libsystem_containermanager.dylib) với danh tính MobileHouseArrest
-        if let mcmPath = resolveViaMobileContainerManager(bundleId: bundleId) {
-            return mcmPath
+        // 1. MobileContainerManager bridge (MobileHouseArrest - Class 2 AppData Container)
+        var lookupError: NSString?
+        if let path = MCMActivateContainerPath(2, bundleId, false, &lookupError), !path.isEmpty {
+            #if DEBUG
+            print("[GameDetectionService] Resolved & activated container for \(bundleId): \(path)")
+            #endif
+            return path
         }
+        
+        #if DEBUG
+        if let err = lookupError {
+            print("[GameDetectionService] MCM lookup error for \(bundleId): \(err)")
+        }
+        #endif
         
         // 2. Thử qua Private API LSApplicationProxy (TrollStore / Enterprise)
         if let proxyClass = NSClassFromString("LSApplicationProxy") as? NSObject.Type {
@@ -97,7 +107,7 @@ final class GameDetectionService {
         }
         
         // 3. Quét trực tiếp /var/mobile/Containers/Data/Application
-        let appDataRoots = ["/var/mobile/Containers/Data/Application", "/private/var/mobile/Containers/Data/Application"]
+        let appDataRoots = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
         let fm = FileManager.default
         
         for appDataRoot in appDataRoots {
@@ -118,73 +128,5 @@ final class GameDetectionService {
         }
         
         return nil
-    }
-    
-    // MARK: - MobileContainerManager (libsystem_containermanager.dylib)
-    
-    private func resolveViaMobileContainerManager(bundleId: String) -> String? {
-        guard let handle = dlopen("/usr/lib/system/libsystem_containermanager.dylib", RTLD_NOW | RTLD_LOCAL) else {
-            return nil
-        }
-        defer { dlclose(handle) }
-        
-        typealias QueryCreate = @convention(c) () -> UnsafeMutableRawPointer?
-        typealias QuerySetClass = @convention(c) (UnsafeMutableRawPointer?, UInt64) -> Void
-        typealias QuerySetIdentifiers = @convention(c) (UnsafeMutableRawPointer?, AnyObject) -> Void
-        typealias QuerySetFlags = @convention(c) (UnsafeMutableRawPointer?, UInt64) -> Void
-        typealias QueryGetSingle = @convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
-        typealias QueryFree = @convention(c) (UnsafeMutableRawPointer?) -> Void
-        typealias ObjectGetPath = @convention(c) (UnsafeMutableRawPointer?) -> UnsafePointer<CChar>?
-        typealias ObjectCopy = @convention(c) (UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
-        typealias ObjectActivate = @convention(c) (UnsafeMutableRawPointer?, Bool) -> Bool
-        typealias ObjectFree = @convention(c) (UnsafeMutableRawPointer?) -> Void
-        
-        guard let queryCreateSym = dlsym(handle, "container_query_create"),
-              let querySetClassSym = dlsym(handle, "container_query_set_class"),
-              let querySetIdentifiersSym = dlsym(handle, "container_query_set_identifiers"),
-              let querySetFlagsSym = dlsym(handle, "container_query_operation_set_flags"),
-              let queryGetSingleSym = dlsym(handle, "container_query_get_single_result"),
-              let queryFreeSym = dlsym(handle, "container_query_free"),
-              let objectGetPathSym = dlsym(handle, "container_object_get_path") else {
-            return nil
-        }
-        
-        let queryCreate = unsafeBitCast(queryCreateSym, to: QueryCreate.self)
-        let querySetClass = unsafeBitCast(querySetClassSym, to: QuerySetClass.self)
-        let querySetIdentifiers = unsafeBitCast(querySetIdentifiersSym, to: QuerySetIdentifiers.self)
-        let querySetFlags = unsafeBitCast(querySetFlagsSym, to: QuerySetFlags.self)
-        let queryGetSingle = unsafeBitCast(queryGetSingleSym, to: QueryGetSingle.self)
-        let queryFree = unsafeBitCast(queryFreeSym, to: QueryFree.self)
-        let objectGetPath = unsafeBitCast(objectGetPathSym, to: ObjectGetPath.self)
-        
-        guard let query = queryCreate() else { return nil }
-        defer { queryFree(query) }
-        
-        querySetClass(query, 1) // 1 = App Data Container
-        querySetIdentifiers(query, bundleId as NSString)
-        querySetFlags(query, 0x900000000)
-        
-        guard let result = queryGetSingle(query) else { return nil }
-        
-        // Kích hoạt sandbox extension nếu khả dụng
-        if let objectCopySym = dlsym(handle, "container_object_copy"),
-           let objectActivateSym = dlsym(handle, "container_object_sandbox_extension_activate"),
-           let objectFreeSym = dlsym(handle, "container_object_free") {
-            let objectCopy = unsafeBitCast(objectCopySym, to: ObjectCopy.self)
-            let objectActivate = unsafeBitCast(objectActivateSym, to: ObjectActivate.self)
-            let objectFree = unsafeBitCast(objectFreeSym, to: ObjectFree.self)
-            
-            if let activation = objectCopy(result) {
-                _ = objectActivate(activation, false)
-                objectFree(activation)
-            }
-        }
-        
-        guard let rawPath = objectGetPath(result) else { return nil }
-        var path = String(cString: rawPath)
-        if path.hasPrefix("/var/") {
-            path = "/private" + path
-        }
-        return path.isEmpty ? nil : path
     }
 }

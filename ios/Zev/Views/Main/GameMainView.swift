@@ -280,7 +280,7 @@ struct GameMainView: View {
                         .font(ZevTheme.Typography.title(18))
                         .foregroundColor(ZevTheme.Colors.text)
                     
-                    Text("File bản vá đã được nạp chính xác vào thư mục game. Bạn có thể mở game và trải nghiệm.")
+                    Text("File bản vá đã được nạp trực tiếp vào game!\n\nLƯU Ý: Vui lòng vuốt tắt Free Fire khỏi đa nhiệm (đóng hẳn game) rồi mở lại để bản vá có hiệu lực.")
                         .font(ZevTheme.Typography.body(13))
                         .foregroundColor(ZevTheme.Colors.textMuted)
                         .multilineTextAlignment(.center)
