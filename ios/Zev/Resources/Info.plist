@@ -61,5 +61,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>freefireth</string>
+		<string>freefiremax</string>
+		<string>sing-box</string>
+		<string>zalo</string>
+	</array>
 </dict>
 </plist>

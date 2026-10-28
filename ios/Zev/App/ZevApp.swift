@@ -15,9 +15,6 @@ struct ZevApp: App {
     }
 }
 
-// MARK: - RootView
-// Điều hướng giữa Onboarding, Login và Main App
-
 struct RootView: View {
     @EnvironmentObject var appState: AppStateManager
     
@@ -29,12 +26,15 @@ struct RootView: View {
                 OnboardingView()
             } else if !appState.isActivated {
                 KeyActivationView()
+            } else if appState.selectedGame == nil {
+                GameSelectionView()
             } else {
                 MainTabView()
             }
         }
         .animation(.easeInOut(duration: 0.3), value: appState.onboardingComplete)
         .animation(.easeInOut(duration: 0.3), value: appState.isActivated)
+        .animation(.easeInOut(duration: 0.3), value: appState.selectedGame?.id)
         .task {
             await appState.initialize()
         }
@@ -54,6 +54,7 @@ final class AppStateManager: ObservableObject {
     @Published var activationKey: String    = ""
     @Published var keyInfo: KeyInfo?
     @Published var deviceInfo: DeviceInfo?
+    @Published var selectedGame: Game?      = nil
     @Published var appConfig: AppConfiguration?
     @Published var maintenanceMode: Bool    = false
     @Published var maintenanceMessage: String = ""
@@ -100,11 +101,20 @@ final class AppStateManager: ObservableObject {
         }
     }
     
+    func selectGame(_ game: Game) {
+        selectedGame = game
+    }
+    
+    func switchGame() {
+        selectedGame = nil
+    }
+    
     func logout() {
         isActivated = false
         activationKey = ""
         keyInfo     = nil
         deviceInfo  = nil
+        selectedGame = nil
         keychain.clearAll()
     }
     

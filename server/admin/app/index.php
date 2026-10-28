@@ -11,7 +11,7 @@ require_once ZEV_ROOT . '/src/Auth/AdminAuth.php';
 use Zev\Config\Database;
 use Zev\Auth\AdminAuth;
 
-AdminAuth::requireAuth();
+AdminAuth::requireLogin();
 
 $db = Database::getInstance();
 $successMsg = '';
@@ -23,15 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         foreach ($configs as $key => $value) {
-            $key = sanitize($key);
+            $key = sanitizeString($key);
             $value = trim($value);
 
             // Kiểm tra xem config đã có chưa
-            $exists = $db->fetchOne("SELECT id FROM app_configs WHERE config_key = ?", [$key]);
+            $exists = $db->fetchOne("SELECT id FROM app_config WHERE config_key = ?", [$key]);
             if ($exists) {
-                $db->execute("UPDATE app_configs SET config_value = ?, updated_at = NOW() WHERE config_key = ?", [$value, $key]);
+                $db->execute("UPDATE app_config SET config_value = ?, updated_at = NOW() WHERE config_key = ?", [$value, $key]);
             } else {
-                $db->execute("INSERT INTO app_configs (config_key, config_value, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", [$key, $value]);
+                $db->execute("INSERT INTO app_config (config_key, config_value, updated_at) VALUES (?, ?, NOW())", [$key, $value]);
             }
         }
         $successMsg = "Cập nhật cấu hình thành công!";
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Lấy danh sách cấu hình hiện tại
-$rows = $db->fetchAll("SELECT config_key, config_value FROM app_configs");
+$rows = $db->fetchAll("SELECT config_key, config_value FROM app_config");
 $currentConfig = [];
 foreach ($rows as $r) {
     $currentConfig[$r['config_key']] = $r['config_value'];

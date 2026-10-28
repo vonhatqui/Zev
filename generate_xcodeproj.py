@@ -6,30 +6,19 @@ def gen_uuid(name: str) -> str:
     h = hashlib.md5(name.encode('utf-8')).hexdigest()[:24].upper()
     return h
 
-files_list = [
-    ("App/ZevApp.swift", "sourcecode.swift"),
-    ("App/ZevTheme.swift", "sourcecode.swift"),
-    ("Config/AppConfig.swift", "sourcecode.swift"),
-    ("Models/Models.swift", "sourcecode.swift"),
-    ("Resources/Info.plist", "text.plist.xml"),
-    ("Services/APIService.swift", "sourcecode.swift"),
-    ("Services/DeviceService.swift", "sourcecode.swift"),
-    ("Services/KeychainService.swift", "sourcecode.swift"),
-    ("ViewModels/AuthViewModel.swift", "sourcecode.swift"),
-    ("ViewModels/FileViewModel.swift", "sourcecode.swift"),
-    ("ViewModels/GameViewModel.swift", "sourcecode.swift"),
-    ("Views/Auth/KeyActivationView.swift", "sourcecode.swift"),
-    ("Views/Components/ZevComponents.swift", "sourcecode.swift"),
-    ("Views/Main/FileDownloadView.swift", "sourcecode.swift"),
-    ("Views/Main/GameDetailView.swift", "sourcecode.swift"),
-    ("Views/Main/GameListView.swift", "sourcecode.swift"),
-    ("Views/Main/HomeView.swift", "sourcecode.swift"),
-    ("Views/Main/MainTabView.swift", "sourcecode.swift"),
-    ("Views/Onboarding/OnboardingView.swift", "sourcecode.swift"),
-    ("Views/Onboarding/SplashView.swift", "sourcecode.swift"),
-    ("Views/Profile/ProfileView.swift", "sourcecode.swift"),
-    ("Views/Profile/SettingsView.swift", "sourcecode.swift"),
-]
+# Scan all files inside ios/Zev
+files_list = []
+base_dir = os.path.join("ios", "Zev")
+
+for root, dirs, files in os.walk(base_dir):
+    for f in sorted(files):
+        rel_path = os.path.relpath(os.path.join(root, f), base_dir).replace('\\', '/')
+        if rel_path.endswith('.swift'):
+            files_list.append((rel_path, "sourcecode.swift"))
+        elif rel_path.endswith('.plist'):
+            files_list.append((rel_path, "text.plist.xml"))
+
+files_list = sorted(files_list, key=lambda x: x[0])
 
 proj_id = gen_uuid("Project_Zev")
 target_id = gen_uuid("Target_Zev")
@@ -58,6 +47,7 @@ subgroups = {
     "Views": gen_uuid("Group_Views"),
     "Views/Auth": gen_uuid("Group_Views_Auth"),
     "Views/Components": gen_uuid("Group_Views_Components"),
+    "Views/Game": gen_uuid("Group_Views_Game"),
     "Views/Main": gen_uuid("Group_Views_Main"),
     "Views/Onboarding": gen_uuid("Group_Views_Onboarding"),
     "Views/Profile": gen_uuid("Group_Views_Profile"),
@@ -81,28 +71,29 @@ for rel_path, ftype in files_list:
         build_files.append(f'\t\t{build_file_id} /* {fname} in Sources */ = {{isa = PBXBuildFile; fileRef = {file_ref_id} /* {fname} */; }};')
         sources_entries.append(f'\t\t\t\t{build_file_id} /* {fname} in Sources */,')
     elif ftype == "text.plist.xml":
-        # Info.plist doesn't go in resources build phase for modern Xcode (handled via INFOPLIST_FILE)
         pass
 
     file_info_map[rel_path] = (file_ref_id, fname)
 
 # Build Groups structure
 group_children = {k: [] for k in subgroups}
-zev_children = []
 
 for rel_path, _ in files_list:
     ref_id, fname = file_info_map[rel_path]
     parts = rel_path.split('/')
     if len(parts) == 2:
         folder = parts[0]
-        group_children[folder].append(f'\t\t\t\t{ref_id} /* {fname} */,')
+        if folder in group_children:
+            group_children[folder].append(f'\t\t\t\t{ref_id} /* {fname} */,')
     elif len(parts) == 3:
         subfolder = f"{parts[0]}/{parts[1]}"
-        group_children[subfolder].append(f'\t\t\t\t{ref_id} /* {fname} */,')
+        if subfolder in group_children:
+            group_children[subfolder].append(f'\t\t\t\t{ref_id} /* {fname} */,')
 
 views_subgroups = [
     f'\t\t\t\t{subgroups["Views/Auth"]} /* Auth */,',
     f'\t\t\t\t{subgroups["Views/Components"]} /* Components */,',
+    f'\t\t\t\t{subgroups["Views/Game"]} /* Game */,',
     f'\t\t\t\t{subgroups["Views/Main"]} /* Main */,',
     f'\t\t\t\t{subgroups["Views/Onboarding"]} /* Onboarding */,',
     f'\t\t\t\t{subgroups["Views/Profile"]} /* Profile */,',
@@ -242,6 +233,14 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\tpath = Components;
 \t\t\tsourceTree = "<group>";
 \t\t}};
+\t\t{subgroups["Views/Game"]} /* Game */ = {{
+\t\t\tisa = PBXGroup;
+\t\t\tchildren = (
+{chr(10).join(group_children["Views/Game"])}
+\t\t\t);
+\t\t\tpath = Game;
+\t\t\tsourceTree = "<group>";
+\t\t}};
 \t\t{subgroups["Views/Main"]} /* Main */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
@@ -293,10 +292,11 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\tisa = PBXProject;
 \t\t\tattributes = {{
 \t\t\t\tBuildIndependentTargetsInParallel = 1;
-\t\t\t\tLastUpgradeCheck = 1520;
+\t\t\t\tLastSwiftUpdateCheck = 1540;
+\t\t\t\tLastUpgradeCheck = 1540;
 \t\t\t\tTargetAttributes = {{
 \t\t\t\t\t{target_id} = {{
-\t\t\t\t\t\tCreatedOnToolsVersion = 15.2;
+\t\t\t\t\t\tCreatedOnToolsVersion = 15.4;
 \t\t\t\t\t}};
 \t\t\t\t}};
 \t\t\t}};
@@ -344,13 +344,15 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
-\t\t\t\tASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 \t\t\t\tCLANG_ANALYZER_NONNULL = YES;
-\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 \t\t\t\tCLANG_ENABLE_MODULES = YES;
 \t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;
+\t\t\t\tCOPY_PHASE_STRIP = NO;
+\t\t\t\tDEBUG_INFORMATION_FORMAT = dwarf;
+\t\t\t\tENABLE_STRICT_OBJC_MSGSEND = YES;
 \t\t\t\tENABLE_TESTABILITY = YES;
 \t\t\t\tGCC_DYNAMIC_NO_PIC = NO;
+\t\t\t\tGCC_NO_COMMON_BLOCKS = YES;
 \t\t\t\tGCC_OPTIMIZATION_LEVEL = 0;
 \t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (
 \t\t\t\t\t"DEBUG=1",
@@ -369,12 +371,14 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
-\t\t\t\tASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 \t\t\t\tCLANG_ANALYZER_NONNULL = YES;
-\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 \t\t\t\tCLANG_ENABLE_MODULES = YES;
 \t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;
+\t\t\t\tCOPY_PHASE_STRIP = NO;
+\t\t\t\tDEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 \t\t\t\tENABLE_NS_ASSERTIONS = NO;
+\t\t\t\tENABLE_STRICT_OBJC_MSGSEND = YES;
+\t\t\t\tGCC_NO_COMMON_BLOCKS = YES;
 \t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 15.0;
 \t\t\t\tMTL_ENABLE_DEBUG_INFO = NO;
 \t\t\t\tSDKROOT = iphoneos;
@@ -387,9 +391,8 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t{cfg_target_debug} /* Debug */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
+\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tCODE_SIGN_STYLE = Manual;
-\t\t\t\tCODE_SIGNING_ALLOWED = NO;
-\t\t\t\tCODE_SIGNING_REQUIRED = NO;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tGENERATE_INFOPLIST_FILE = NO;
 \t\t\t\tINFOPLIST_FILE = Zev/Resources/Info.plist;
@@ -410,9 +413,8 @@ pbx_content = f"""// !$*UTF8*$!
 \t\t{cfg_target_release} /* Release */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
+\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tCODE_SIGN_STYLE = Manual;
-\t\t\t\tCODE_SIGNING_ALLOWED = NO;
-\t\t\t\tCODE_SIGNING_REQUIRED = NO;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tGENERATE_INFOPLIST_FILE = NO;
 \t\t\t\tINFOPLIST_FILE = Zev/Resources/Info.plist;
@@ -460,16 +462,19 @@ pbx_content = f"""// !$*UTF8*$!
 
 out_dir = os.path.join("ios", "Zev.xcodeproj")
 os.makedirs(out_dir, exist_ok=True)
-with open(os.path.join(out_dir, "project.pbxproj"), "w", encoding="utf-8") as f:
+pbx_path = os.path.join(out_dir, "project.pbxproj")
+
+with open(pbx_path, "w", encoding="utf-8") as f:
     f.write(pbx_content)
 
-# Generate Shared Scheme for CI/CD / Xcode
+# Shared scheme
 scheme_dir = os.path.join(out_dir, "xcshareddata", "xcschemes")
 os.makedirs(scheme_dir, exist_ok=True)
+scheme_path = os.path.join(scheme_dir, "Zev.xcscheme")
 
 scheme_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1520"
+   LastUpgradeVersion = "1540"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -491,6 +496,55 @@ scheme_content = f"""<?xml version="1.0" encoding="UTF-8"?>
          </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+      </Testables>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Release"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "{target_id}"
+            BuildableName = "Zev.app"
+            BlueprintName = "Zev"
+            ReferencedContainer = "container:Zev.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "{target_id}"
+            BuildableName = "Zev.app"
+            BlueprintName = "Zev"
+            ReferencedContainer = "container:Zev.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
       revealArchiveInOrganizer = "YES">
@@ -498,7 +552,7 @@ scheme_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 </Scheme>
 """
 
-with open(os.path.join(scheme_dir, "Zev.xcscheme"), "w", encoding="utf-8") as f:
+with open(scheme_path, "w", encoding="utf-8") as f:
     f.write(scheme_content)
 
-print("Generated Zev.xcodeproj and shared scheme successfully!")
+print(f"Generated Zev.xcodeproj with {len(files_list)} files and shared scheme successfully!")

@@ -16,8 +16,9 @@ $adminInitial = strtoupper(substr($adminName, 0, 1));
 $navItems = [
     ['id' => 'dashboard', 'label' => 'Dashboard',       'icon' => '📊', 'href' => '/admin/'],
     ['id' => 'keys',      'label' => 'Quản lý Key',     'icon' => '🔑', 'href' => '/admin/keys/'],
+    ['id' => 'features',  'label' => 'Chức năng & File', 'icon' => '🎯', 'href' => '/admin/features/'],
     ['id' => 'app',       'label' => 'Cấu hình App',    'icon' => '⚙️', 'href' => '/admin/app/'],
-    ['id' => 'files',     'label' => 'Quản lý File',    'icon' => '📦', 'href' => '/admin/files/'],
+    ['id' => 'files',     'label' => 'Kho File Tải',    'icon' => '📦', 'href' => '/admin/files/'],
     ['id' => 'logs',      'label' => 'Nhật ký',         'icon' => '📋', 'href' => '/admin/logs/'],
 ];
 ?>

@@ -12,13 +12,13 @@ require_once ZEV_ROOT . '/src/Auth/AdminAuth.php';
 use Zev\Config\Database;
 use Zev\Auth\AdminAuth;
 
-AdminAuth::requireAuth();
+AdminAuth::requireLogin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['status' => 'error', 'message' => 'Phương thức không hợp lệ'], 405);
 }
 
-$action = sanitize($_POST['action'] ?? '');
+$action = sanitizeString($_POST['action'] ?? '');
 $keyId  = (int)($_POST['id'] ?? 0);
 
 if (!$keyId || empty($action)) {
@@ -35,7 +35,7 @@ if (!$key) {
 switch ($action) {
     case 'toggle_status':
         $newStatus = ($key['status'] === 'active') ? 'revoked' : 'active';
-        $db->execute("UPDATE activation_keys SET status = ?, updated_at = NOW() WHERE id = ?", [$newStatus, $keyId]);
+        $db->execute("UPDATE activation_keys SET status = ? WHERE id = ?", [$newStatus, $keyId]);
         jsonResponse([
             'status' => 'success',
             'message' => 'Đã đổi trạng thái sang: ' . $newStatus,
@@ -44,7 +44,7 @@ switch ($action) {
         break;
 
     case 'reset_hwid':
-        $db->execute("UPDATE activation_keys SET hwid_lock = NULL, device_name = NULL, last_used_at = NULL, updated_at = NOW() WHERE id = ?", [$keyId]);
+        $db->execute("DELETE FROM device_bindings WHERE key_id = ?", [$keyId]);
         jsonResponse([
             'status' => 'success',
             'message' => 'Đã reset khóa thiết bị (HWID) thành công!'

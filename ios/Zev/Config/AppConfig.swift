@@ -79,10 +79,24 @@ enum AppConfig {
     // ─── Support ───────────────────────────────────────────────────────
     static let supportZalo: String = "0365829172"
     
-    // ─── Games ─────────────────────────────────────────────────────────
-    // Bundle IDs dùng để check URL scheme (canOpenURL) — không phải check bundle ID trực tiếp
+    // ─── Games & Categories ───────────────────────────────────────────
+    enum CategoryLogos {
+        static let menuProject = "https://files.catbox.moe/wetz7r.png"
+        static let aimCache    = "https://files.catbox.moe/z7c8o6.png"
+        static let modskinFFTH = "https://files.catbox.moe/dvyw27.png"
+    }
+    
+    enum GameLogos {
+        // Logo chính thức Free Fire Thường & MAX
+        static let freeFireTH  = "https://files.catbox.moe/wetz7r.png"
+        static let freeFireMAX = "https://files.catbox.moe/dvyw27.png"
+    }
+    
+    static let singboxAppStoreURL = "https://apps.apple.com/app/sing-box/id6451272673"
+    
     enum GameURLSchemes {
-        static let freeFireTH  = "freefireth://"    // Scheme thực tế cần xác minh
-        static let freeFireMAX = "freefiremax://"   // Scheme thực tế cần xác minh
+        static let freeFireTH  = "freefireth://"
+        static let freeFireMAX = "freefiremax://"
+        static let singbox     = "sing-box://"
     }
 }

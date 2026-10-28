@@ -11,7 +11,7 @@ require_once ZEV_ROOT . '/src/Auth/AdminAuth.php';
 use Zev\Config\Database;
 use Zev\Auth\AdminAuth;
 
-AdminAuth::requireAuth();
+AdminAuth::requireLogin();
 
 $db = Database::getInstance();
 $successMsg = '';
@@ -19,38 +19,38 @@ $errorMsg = '';
 
 // Xử lý upload file mới
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_upload'])) {
-    $title       = sanitize($_POST['title'] ?? '');
+    $title       = sanitizeString($_POST['title'] ?? '');
     $gameId      = !empty($_POST['game_id']) ? (int)$_POST['game_id'] : null;
-    $version     = sanitize($_POST['version'] ?? '1.0');
-    $description = sanitize($_POST['description'] ?? '');
-    $isVipOnly   = isset($_POST['vip_only']) ? 1 : 0;
+    $version     = sanitizeString($_POST['version'] ?? '1.0');
+    $description = sanitizeString($_POST['description'] ?? '');
+    $targetPath  = sanitizeString($_POST['target_path'] ?? 'Documents/');
 
     $file = $_FILES['file_upload'];
     if ($file['error'] === UPLOAD_ERR_OK && !empty($title)) {
         $origName = basename($file['name']);
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-        $allowedExts = ['zip', 'dylib', 'deb', 'json', 'plist', 'txt', 'ipa', 'dat', 'bin'];
+        $allowedExts = ['3105', 'bytes', 'gzip', 'unityfs', 'zip', 'dylib', 'deb', 'json', 'plist', 'txt', 'ipa', 'dat', 'bin', 'config'];
 
         if (!in_array($ext, $allowedExts)) {
-            $errorMsg = "Định dạng file không được hỗ trợ (chỉ chấp nhận: " . implode(', ', $allowedExts) . ")";
+            $errorMsg = "Định dạng file không được hỗ trợ (chấp nhận: " . implode(', ', $allowedExts) . ")";
         } else {
             $uploadDir = ZEV_ROOT . '/uploads/files/';
             if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+                @mkdir($uploadDir, 0755, true);
             }
 
             $storageName = uniqid('zev_', true) . '.' . $ext;
-            $targetPath  = $uploadDir . $storageName;
+            $fullPath    = $uploadDir . $storageName;
 
-            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                $fileSize = filesize($targetPath);
-                $fileHash = hash_file('sha256', $targetPath);
+            if (move_uploaded_file($file['tmp_name'], $fullPath)) {
+                $fileSize = filesize($fullPath);
+                $fileHash = hash_file('sha256', $fullPath);
 
                 $db->execute("
-                    INSERT INTO files (title, original_name, storage_name, file_size, file_hash, file_ext, game_id, version, description, vip_only, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    INSERT INTO file_records (display_name, original_name, stored_filename, file_path, file_size, checksum_sha256, mime_type, game_id, file_version, target_path, description, status, uploaded_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())
                 ", [
-                    $title, $origName, $storageName, $fileSize, $fileHash, $ext, $gameId, $version, $description, $isVipOnly
+                    $title, $origName, $storageName, $storageName, $fileSize, $fileHash, $ext, $gameId, $version, $targetPath, $description
                 ]);
 
                 $successMsg = "Tải lên file thành công: " . htmlspecialchars($origName);
@@ -66,26 +66,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file_upload'])) {
 // Xử lý xóa file
 if (isset($_GET['delete'])) {
     $deleteId = (int)$_GET['delete'];
-    $fileData = $db->fetchOne("SELECT * FROM files WHERE id = ?", [$deleteId]);
+    $fileData = $db->fetchOne("SELECT * FROM file_records WHERE id = ?", [$deleteId]);
     if ($fileData) {
-        $filePath = ZEV_ROOT . '/uploads/files/' . $fileData['storage_name'];
+        $filePath = ZEV_ROOT . '/uploads/files/' . $fileData['stored_filename'];
         if (file_exists($filePath)) {
             @unlink($filePath);
         }
-        $db->execute("DELETE FROM files WHERE id = ?", [$deleteId]);
+        $db->execute("DELETE FROM file_records WHERE id = ?", [$deleteId]);
         $successMsg = "Đã xoá file thành công!";
     }
 }
 
 // Lấy danh sách games để gán file
-$games = $db->fetchAll("SELECT id, name FROM games ORDER BY name ASC");
+$games = $db->fetchAll("SELECT id, display_name FROM games ORDER BY sort_order ASC");
 
 // Lấy danh sách files hiện có
 $files = $db->fetchAll("
-    SELECT f.*, g.name as game_name 
-    FROM files f 
-    LEFT JOIN games g ON f.game_id = g.id 
-    ORDER BY f.id DESC
+    SELECT fr.*, g.display_name as game_name 
+    FROM file_records fr 
+    LEFT JOIN games g ON fr.game_id = g.id 
+    ORDER BY fr.id DESC
 ");
 
 $pageTitle = 'Quản lý File & Cấu hình';

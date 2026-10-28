@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - KeyActivationView
-// Màn hình kích hoạt bản quyền Key Zev với thiết kế hiện đại, kiểm tra thiết bị HWID
+// Màn hình Đăng nhập theo Key với thông tin thiết bị chuẩn xác và Modal Thành Công (Success)
 
 struct KeyActivationView: View {
     @EnvironmentObject var appState: AppStateManager
@@ -9,8 +9,11 @@ struct KeyActivationView: View {
     @State private var keyCode: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
-    @State private var showErrorAlert: Bool = false
-    @State private var showSuccessAnimation: Bool = false
+    
+    // Modal thành công
+    @State private var showSuccessModal: Bool = false
+    @State private var activationResult: ActivationResult? = nil
+    @State private var verifiedKey: String = ""
     
     private let deviceService = DeviceService.shared
     
@@ -22,28 +25,28 @@ struct KeyActivationView: View {
             // Background Light Effects
             VStack {
                 Circle()
-                    .fill(ZevTheme.Colors.primary.opacity(0.12))
+                    .fill(ZevTheme.Colors.primary.opacity(0.14))
                     .blur(radius: 90)
-                    .frame(width: 300, height: 300)
+                    .frame(width: 320, height: 320)
                     .offset(y: -80)
                 Spacer()
             }
             .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 28) {
+                VStack(spacing: 24) {
                     
-                    // Top App Logo & Branding
-                    VStack(spacing: 14) {
+                    // MARK: - Top App Logo & Branding
+                    VStack(spacing: 12) {
                         ZStack {
                             Circle()
                                 .fill(ZevTheme.Colors.surface2)
-                                .frame(width: 88, height: 88)
+                                .frame(width: 86, height: 86)
                                 .overlay(
                                     Circle()
                                         .stroke(ZevTheme.Gradients.primary, lineWidth: 1.5)
                                 )
-                                .shadow(color: ZevTheme.Colors.primary.opacity(0.4), radius: 16, x: 0, y: 4)
+                                .shadow(color: ZevTheme.Colors.primary.opacity(0.35), radius: 18, x: 0, y: 6)
                             
                             AsyncImage(url: URL(string: AppConfig.appLogoURL)) { phase in
                                 switch phase {
@@ -62,19 +65,19 @@ struct KeyActivationView: View {
                         }
                         
                         VStack(spacing: 4) {
-                            Text("ZEV ACTIVATION")
+                            Text("ZEV LOGIN")
                                 .font(ZevTheme.Typography.title(22))
                                 .foregroundStyle(ZevTheme.Gradients.primary)
                                 .tracking(1.5)
                             
-                            Text("Kích hoạt bản quyền thiết bị để bắt đầu")
-                                .font(ZevTheme.Typography.body(14))
+                            Text("Nhập mã key để đăng nhập và mở khóa tính năng")
+                                .font(ZevTheme.Typography.body(13))
                                 .foregroundColor(ZevTheme.Colors.textMuted)
                         }
                     }
-                    .padding(.top, 24)
+                    .padding(.top, 20)
                     
-                    // Maintenance Banner (nếu đang bảo trì)
+                    // Maintenance Banner
                     if appState.maintenanceMode {
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -125,9 +128,9 @@ struct KeyActivationView: View {
                         )
                     }
                     
-                    // Activation Card
+                    // MARK: - Ô Nhập Key & Nút Kích Hoạt
                     ZevCard(borderGlow: true) {
-                        VStack(spacing: 20) {
+                        VStack(spacing: 18) {
                             
                             // Input Header
                             HStack {
@@ -138,7 +141,6 @@ struct KeyActivationView: View {
                                 
                                 Spacer()
                                 
-                                // Paste button
                                 Button(action: pasteKey) {
                                     HStack(spacing: 4) {
                                         Image(systemName: "doc.on.clipboard")
@@ -181,7 +183,7 @@ struct KeyActivationView: View {
                             
                             // Activate Button
                             ZevButton(
-                                title: "Kích Hoạt Thiết Bị",
+                                title: "Kích Hoạt Key",
                                 icon: "bolt.fill",
                                 style: .primary,
                                 isLoading: isLoading
@@ -193,51 +195,63 @@ struct KeyActivationView: View {
                         }
                     }
                     
-                    // Device Binding Info Card
+                    // MARK: - Thông Tin Hỗ Trợ Thiết Bị (Ngay Dưới Ô Nhập Key)
                     ZevCard {
                         VStack(alignment: .leading, spacing: 14) {
                             HStack {
-                                Image(systemName: "info.circle.fill")
-                                    .foregroundColor(ZevTheme.Colors.info)
-                                    .font(.system(size: 14))
+                                Image(systemName: "iphone.smartbatterycase.gen1")
+                                    .foregroundColor(ZevTheme.Colors.primary)
+                                    .font(.system(size: 15))
                                 
-                                Text("Khóa liên kết thiết bị (HWID Lock)")
-                                    .font(ZevTheme.Typography.heading(13))
+                                Text("Thông tin hỗ trợ thiết bị")
+                                    .font(ZevTheme.Typography.heading(14))
                                     .foregroundColor(ZevTheme.Colors.text)
                                 
                                 Spacer()
+                                
+                                StatusBadge(
+                                    title: SupportPolicy.currentSupportBadgeText,
+                                    color: SupportPolicy.isCurrentDeviceSupported ? ZevTheme.Colors.success : ZevTheme.Colors.danger
+                                )
                             }
                             
-                            VStack(spacing: 8) {
-                                infoRow(title: "Thiết bị:", value: deviceService.deviceCommercialName)
-                                infoRow(title: "Hệ điều hành:", value: "iOS " + deviceService.iosVersion)
-                                infoRow(title: "Mã định danh (HWID):", value: String(deviceService.deviceIdentifier.prefix(18)) + "...")
-                                infoRow(title: "Phiên bản App:", value: "v" + AppConfig.appVersion)
+                            Divider()
+                                .background(ZevTheme.Colors.border)
+                            
+                            VStack(spacing: 10) {
+                                infoRow(title: "Điện thoại:", value: deviceService.deviceCommercialName)
+                                infoRow(title: "Phiên bản iOS:", value: "iOS " + deviceService.iosVersion)
+                                infoRow(title: "Mã máy (HWID):", value: String(deviceService.deviceIdentifier.prefix(18)) + "...")
+                                infoRow(title: "Model Identifier:", value: deviceService.deviceModelIdentifier)
                             }
                             
-                            Text("⚠️ Key sau khi kích hoạt sẽ được liên kết cố định với thiết bị này để đảm bảo an toàn bản quyền.")
-                                .font(ZevTheme.Typography.caption(11))
-                                .foregroundColor(ZevTheme.Colors.textDim)
-                                .lineSpacing(2)
+                            HStack(spacing: 6) {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 11))
+                                Text("Key sau khi kích hoạt sẽ được khóa cố định theo mã máy (HWID) này.")
+                                    .font(ZevTheme.Typography.caption(11))
+                            }
+                            .foregroundColor(ZevTheme.Colors.textDim)
                         }
                     }
                     
-                    // Help & Purchase Links
+                    // MARK: - Help & Contact Support
                     VStack(spacing: 12) {
-                        Text("Chưa có mã bản quyền hoặc cần trợ giúp?")
+                        Text("Chưa có mã key hoặc cần gia hạn?")
                             .font(ZevTheme.Typography.caption(13))
                             .foregroundColor(ZevTheme.Colors.textMuted)
                         
                         HStack(spacing: 12) {
-                            Link(destination: URL(string: "https://t.me/zev_support")!) {
+                            Button(action: openZaloSupport) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "paperplane.fill")
-                                        .font(.system(size: 12))
-                                    Text("Mua Key qua Telegram")
+                                    Image(systemName: "message.fill")
+                                        .font(.system(size: 13))
+                                    Text("Hỗ trợ Zalo: 0365829172")
                                         .font(ZevTheme.Typography.caption(13))
+                                        .fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 42)
+                                .frame(height: 44)
                                 .background(ZevTheme.Colors.surface2)
                                 .foregroundColor(ZevTheme.Colors.primary)
                                 .cornerRadius(ZevTheme.Radius.md)
@@ -249,9 +263,102 @@ struct KeyActivationView: View {
                         }
                     }
                     .padding(.top, 4)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 36)
                 }
                 .padding(.horizontal, 20)
+            }
+            
+            // MARK: - Success Modal Popup
+            if showSuccessModal, let res = activationResult {
+                Color.black.opacity(0.75)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                
+                VStack(spacing: 20) {
+                    // Success Icon
+                    ZStack {
+                        Circle()
+                            .fill(ZevTheme.Colors.success.opacity(0.18))
+                            .frame(width: 80, height: 80)
+                        
+                        Circle()
+                            .stroke(ZevTheme.Colors.success, lineWidth: 2)
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 38, weight: .bold))
+                            .foregroundColor(ZevTheme.Colors.success)
+                    }
+                    .padding(.top, 10)
+                    
+                    VStack(spacing: 6) {
+                        Text("Thành công")
+                            .font(ZevTheme.Typography.title(22))
+                            .foregroundColor(ZevTheme.Colors.success)
+                        
+                        Text("Success · Kích hoạt thành công!")
+                            .font(ZevTheme.Typography.body(14))
+                            .foregroundColor(ZevTheme.Colors.textMuted)
+                    }
+                    
+                    // Time Info Card
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Thời gian key:")
+                                .font(ZevTheme.Typography.body(13))
+                                .foregroundColor(ZevTheme.Colors.textMuted)
+                            Spacer()
+                            Text(res.key.displayExpiry)
+                                .font(ZevTheme.Typography.heading(14))
+                                .foregroundColor(ZevTheme.Colors.text)
+                        }
+                        
+                        HStack {
+                            Text("Mã key:")
+                                .font(ZevTheme.Typography.body(13))
+                                .foregroundColor(ZevTheme.Colors.textMuted)
+                            Spacer()
+                            Text(verifiedKey)
+                                .font(ZevTheme.Typography.mono(13))
+                                .foregroundColor(ZevTheme.Colors.primary)
+                        }
+                        
+                        HStack {
+                            Text("Thiết bị:")
+                                .font(ZevTheme.Typography.body(13))
+                                .foregroundColor(ZevTheme.Colors.textMuted)
+                            Spacer()
+                            Text(deviceService.deviceCommercialName)
+                                .font(ZevTheme.Typography.caption(12))
+                                .foregroundColor(ZevTheme.Colors.text)
+                        }
+                    }
+                    .padding(14)
+                    .background(ZevTheme.Colors.surface2)
+                    .cornerRadius(ZevTheme.Radius.md)
+                    
+                    // Confirm Button (Nút Xác nhận -> Nhảy vào Chọn Game)
+                    Button(action: confirmAndProceedToGameSelection) {
+                        Text("Xác nhận")
+                            .font(ZevTheme.Typography.body(16))
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(ZevTheme.Gradients.primary)
+                            .cornerRadius(ZevTheme.Radius.md)
+                            .shadow(color: ZevTheme.Colors.primary.opacity(0.4), radius: 10, x: 0, y: 4)
+                    }
+                }
+                .padding(24)
+                .background(ZevTheme.Colors.surface)
+                .cornerRadius(ZevTheme.Radius.lg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: ZevTheme.Radius.lg)
+                        .stroke(ZevTheme.Colors.success.opacity(0.4), lineWidth: 1.5)
+                )
+                .padding(.horizontal, 28)
+                .transition(.scale.combined(with: .opacity))
             }
         }
     }
@@ -267,7 +374,7 @@ struct KeyActivationView: View {
     private func performActivation() async {
         let cleanKey = keyCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard !cleanKey.isEmpty else {
-            errorMessage = "Vui lòng nhập mã kích hoạt."
+            errorMessage = "Vui lòng nhập mã kích hoạt (key)."
             return
         }
         
@@ -280,20 +387,41 @@ struct KeyActivationView: View {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
             
-            withAnimation(.spring()) {
-                appState.activateKey(cleanKey, result: result)
+            self.verifiedKey = cleanKey
+            self.activationResult = result
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                showSuccessModal = true
             }
         } catch let apiError as APIError {
             errorMessage = apiError.localizedDescription
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.error)
         } catch {
-            errorMessage = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng."
+            errorMessage = "Không thể kết nối đến máy chủ key. Vui lòng kiểm tra mạng."
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.error)
         }
         
         isLoading = false
+    }
+    
+    private func confirmAndProceedToGameSelection() {
+        guard let res = activationResult else { return }
+        
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        withAnimation(.easeInOut(duration: 0.3)) {
+            showSuccessModal = false
+            appState.activateKey(verifiedKey, result: res)
+            // appState.activateKey đặt isActivated = true, RootView sẽ chuyển vào GameSelectionView vì selectedGame == nil!
+        }
+    }
+    
+    private func openZaloSupport() {
+        if let url = URL(string: "https://zalo.me/0365829172") {
+            UIApplication.shared.open(url)
+        }
     }
     
     private func infoRow(title: String, value: String) -> some View {

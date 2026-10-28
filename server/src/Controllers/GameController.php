@@ -87,9 +87,9 @@ class GameController
 
         $features = $this->db->fetchAll(
             "SELECT f.id, f.slug, f.display_name, f.description, f.status, 
-                    f.preview_url, f.sort_order,
+                    f.file_id, f.preview_url, f.sort_order,
                     fc.id as category_id, fc.slug as category_slug, fc.display_name as category_name,
-                    fr.file_version, fr.file_size
+                    fr.original_name as file_name, fr.file_version, fr.file_size, fr.target_path, fr.checksum_sha256
              FROM features f
              JOIN feature_categories fc ON fc.id = f.category_id
              LEFT JOIN file_records fr ON fr.id = f.file_id AND fr.status = 'active'

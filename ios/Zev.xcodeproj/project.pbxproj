@@ -13,15 +13,20 @@
 		8E72557B7F23539A71CFF051 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22252D31B1685E903FBE49BA /* Models.swift */; };
 		8027708EC64C19408F951621 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B7FA8492057046F5A8494F /* APIService.swift */; };
 		EB8AFB086945081DE8589900 /* DeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505D7D8A4681A7E271165D1C /* DeviceService.swift */; };
+		9A0D15A80706CE2D0DEB7D1A /* GameDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C96F2D95A650D8CDB37C51 /* GameDetectionService.swift */; };
+		E656C4BA00F22A460597AA83 /* GamePatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D81031AEA5E5839959325197 /* GamePatchService.swift */; };
 		A88D60D8890E8604315FAEF1 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C2ABAB703A3EF83F8C96F32 /* KeychainService.swift */; };
+		E608A4FBB879B00499DD0733 /* SupportPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB41F8E4DC0570DC169727D2 /* SupportPolicy.swift */; };
 		30A51F01142548FF7491803C /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63BA7174B04EFA5410A30002 /* AuthViewModel.swift */; };
 		BAF67524788514BD31781C94 /* FileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF71378B2C549FF6C4D8AA93 /* FileViewModel.swift */; };
 		936CE0260D2CE7E2C55F09FB /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C595D42629AA39CDC12C4D /* GameViewModel.swift */; };
 		06B52D715A4AAC5E34372C3D /* KeyActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0135BEA674ED22F1F37C581A /* KeyActivationView.swift */; };
 		39F8F9C2614ECCEDFEF79716 /* ZevComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B51AD2C17FC6A43D747D6B /* ZevComponents.swift */; };
+		2E59A8385B2F3A35AE4174B4 /* GameSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCBAC7577518D2BDD2A753B9 /* GameSelectionView.swift */; };
 		3AFAF5C02A8070FED646C80E /* FileDownloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CCE6BADF555615C890FB1 /* FileDownloadView.swift */; };
 		C6EB786F2A2505ADB6FBF943 /* GameDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EDEF197DCED2A5BE8857538 /* GameDetailView.swift */; };
 		90B5FFEB8F2AEE4240055E8E /* GameListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB2E906C9443F4471FA2A22 /* GameListView.swift */; };
+		DAF004EB011DDFABE5D4CB8F /* GameMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6511FA2A6F266C984DDA406B /* GameMainView.swift */; };
 		40E36783C2403AEE9A7919B2 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20493F6255A28194A5C24796 /* HomeView.swift */; };
 		F1BA89F9A53B06D75C94CB96 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727762989D941B155B595AA4 /* MainTabView.swift */; };
 		32F0369F655B21F8E88DFB29 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C7703A1995DAA33CE17899 /* OnboardingView.swift */; };
@@ -39,15 +44,20 @@
 		26A8DA9A483620481D42BCC6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
 		79B7FA8492057046F5A8494F /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService.swift"; sourceTree = "<group>"; };
 		505D7D8A4681A7E271165D1C /* DeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeviceService.swift"; sourceTree = "<group>"; };
+		F0C96F2D95A650D8CDB37C51 /* GameDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameDetectionService.swift"; sourceTree = "<group>"; };
+		D81031AEA5E5839959325197 /* GamePatchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GamePatchService.swift"; sourceTree = "<group>"; };
 		5C2ABAB703A3EF83F8C96F32 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeychainService.swift"; sourceTree = "<group>"; };
+		DB41F8E4DC0570DC169727D2 /* SupportPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SupportPolicy.swift"; sourceTree = "<group>"; };
 		63BA7174B04EFA5410A30002 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthViewModel.swift"; sourceTree = "<group>"; };
 		CF71378B2C549FF6C4D8AA93 /* FileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileViewModel.swift"; sourceTree = "<group>"; };
 		15C595D42629AA39CDC12C4D /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameViewModel.swift"; sourceTree = "<group>"; };
 		0135BEA674ED22F1F37C581A /* KeyActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyActivationView.swift"; sourceTree = "<group>"; };
 		B4B51AD2C17FC6A43D747D6B /* ZevComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ZevComponents.swift"; sourceTree = "<group>"; };
+		FCBAC7577518D2BDD2A753B9 /* GameSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameSelectionView.swift"; sourceTree = "<group>"; };
 		056CCE6BADF555615C890FB1 /* FileDownloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileDownloadView.swift"; sourceTree = "<group>"; };
 		8EDEF197DCED2A5BE8857538 /* GameDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameDetailView.swift"; sourceTree = "<group>"; };
 		9CB2E906C9443F4471FA2A22 /* GameListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameListView.swift"; sourceTree = "<group>"; };
+		6511FA2A6F266C984DDA406B /* GameMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameMainView.swift"; sourceTree = "<group>"; };
 		20493F6255A28194A5C24796 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeView.swift"; sourceTree = "<group>"; };
 		727762989D941B155B595AA4 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainTabView.swift"; sourceTree = "<group>"; };
 		15C7703A1995DAA33CE17899 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingView.swift"; sourceTree = "<group>"; };
@@ -135,7 +145,10 @@
 			children = (
 				79B7FA8492057046F5A8494F /* APIService.swift */,
 				505D7D8A4681A7E271165D1C /* DeviceService.swift */,
+				F0C96F2D95A650D8CDB37C51 /* GameDetectionService.swift */,
+				D81031AEA5E5839959325197 /* GamePatchService.swift */,
 				5C2ABAB703A3EF83F8C96F32 /* KeychainService.swift */,
+				DB41F8E4DC0570DC169727D2 /* SupportPolicy.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -155,6 +168,7 @@
 			children = (
 				35D45235068F3F32D4528982 /* Auth */,
 				ECA2435DAA490F199295CBDE /* Components */,
+				4AD9D313B92690908C4230BF /* Game */,
 				864919F7B98988816D1DA9CF /* Main */,
 				46075D436728788C789D28AC /* Onboarding */,
 				AD89BC8A486F688112C7E8C0 /* Profile */,
@@ -178,12 +192,21 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		4AD9D313B92690908C4230BF /* Game */ = {
+			isa = PBXGroup;
+			children = (
+				FCBAC7577518D2BDD2A753B9 /* GameSelectionView.swift */,
+			);
+			path = Game;
+			sourceTree = "<group>";
+		};
 		864919F7B98988816D1DA9CF /* Main */ = {
 			isa = PBXGroup;
 			children = (
 				056CCE6BADF555615C890FB1 /* FileDownloadView.swift */,
 				8EDEF197DCED2A5BE8857538 /* GameDetailView.swift */,
 				9CB2E906C9443F4471FA2A22 /* GameListView.swift */,
+				6511FA2A6F266C984DDA406B /* GameMainView.swift */,
 				20493F6255A28194A5C24796 /* HomeView.swift */,
 				727762989D941B155B595AA4 /* MainTabView.swift */,
 			);
@@ -235,10 +258,11 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1520;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
 				TargetAttributes = {
 					C9A55C34440CEF249D0D205C = {
-						CreatedOnToolsVersion = 15.2;
+						CreatedOnToolsVersion = 15.4;
 					};
 				};
 			};
@@ -281,15 +305,20 @@
 				8E72557B7F23539A71CFF051 /* Models.swift in Sources */,
 				8027708EC64C19408F951621 /* APIService.swift in Sources */,
 				EB8AFB086945081DE8589900 /* DeviceService.swift in Sources */,
+				9A0D15A80706CE2D0DEB7D1A /* GameDetectionService.swift in Sources */,
+				E656C4BA00F22A460597AA83 /* GamePatchService.swift in Sources */,
 				A88D60D8890E8604315FAEF1 /* KeychainService.swift in Sources */,
+				E608A4FBB879B00499DD0733 /* SupportPolicy.swift in Sources */,
 				30A51F01142548FF7491803C /* AuthViewModel.swift in Sources */,
 				BAF67524788514BD31781C94 /* FileViewModel.swift in Sources */,
 				936CE0260D2CE7E2C55F09FB /* GameViewModel.swift in Sources */,
 				06B52D715A4AAC5E34372C3D /* KeyActivationView.swift in Sources */,
 				39F8F9C2614ECCEDFEF79716 /* ZevComponents.swift in Sources */,
+				2E59A8385B2F3A35AE4174B4 /* GameSelectionView.swift in Sources */,
 				3AFAF5C02A8070FED646C80E /* FileDownloadView.swift in Sources */,
 				C6EB786F2A2505ADB6FBF943 /* GameDetailView.swift in Sources */,
 				90B5FFEB8F2AEE4240055E8E /* GameListView.swift in Sources */,
+				DAF004EB011DDFABE5D4CB8F /* GameMainView.swift in Sources */,
 				40E36783C2403AEE9A7919B2 /* HomeView.swift in Sources */,
 				F1BA89F9A53B06D75C94CB96 /* MainTabView.swift in Sources */,
 				32F0369F655B21F8E88DFB29 /* OnboardingView.swift in Sources */,
@@ -306,13 +335,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -331,12 +362,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
@@ -349,9 +382,8 @@
 		3D8CC1E11ECF4F8A930479AB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Manual;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Zev/Resources/Info.plist;
@@ -372,9 +404,8 @@
 		F5F84B4E1D285DDACE9BA9C3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Manual;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Zev/Resources/Info.plist;

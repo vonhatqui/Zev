@@ -101,8 +101,13 @@ struct Game: Decodable, Identifiable {
     let description: String?
     let sortOrder: Int
     
-    // Computed: không thể xác minh cài đặt qua iOS public API
-    var installationStatus: GameInstallStatus { .unknown }
+    var isInstalled: Bool {
+        GameDetectionService.shared.checkInstallation(bundleId: bundleId).isInstalled
+    }
+    
+    var installationStatusText: String {
+        isInstalled ? "Sẵn sàng" : "Chưa Cài Đặt"
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -111,20 +116,6 @@ struct Game: Decodable, Identifiable {
         case shortName   = "short_name"
         case logoUrl     = "logo_url"
         case description, sortOrder = "sort_order"
-    }
-}
-
-enum GameInstallStatus {
-    case installed
-    case notInstalled
-    case unknown        // iOS sandbox không cho phép kiểm tra chính xác
-    
-    var displayText: String {
-        switch self {
-        case .installed:    return NSLocalizedString("Sẵn sàng", comment: "")
-        case .notInstalled: return NSLocalizedString("Chưa cài đặt", comment: "")
-        case .unknown:      return NSLocalizedString("Không xác định", comment: "")
-        }
     }
 }
 
@@ -176,20 +167,32 @@ struct Feature: Decodable, Identifiable {
     let displayName: String
     let description: String?
     let status: FeatureStatus
+    let fileId: Int?
+    let fileName: String?
     let previewUrl: String?
     let categoryId: Int?
     let categoryName: String?
     let fileVersion: String?
     let fileSize: Int?
+    let targetPath: String?
+    let checksumSha256: String?
+    
+    var hasFile: Bool {
+        fileId != nil && status == .ready
+    }
     
     enum CodingKeys: String, CodingKey {
         case id, slug, description, status
-        case displayName  = "display_name"
-        case previewUrl   = "preview_url"
-        case categoryId   = "category_id"
-        case categoryName = "category_name"
-        case fileVersion  = "file_version"
-        case fileSize     = "file_size"
+        case displayName    = "display_name"
+        case fileId         = "file_id"
+        case fileName       = "file_name"
+        case previewUrl     = "preview_url"
+        case categoryId     = "category_id"
+        case categoryName   = "category_name"
+        case fileVersion    = "file_version"
+        case fileSize       = "file_size"
+        case targetPath     = "target_path"
+        case checksumSha256 = "checksum_sha256"
     }
 }
 

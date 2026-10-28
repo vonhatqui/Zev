@@ -184,6 +184,7 @@ CREATE TABLE IF NOT EXISTS `file_records` (
   `game_id` INT UNSIGNED DEFAULT NULL,
   `feature_type` VARCHAR(64) DEFAULT NULL COMMENT 'e.g. menu, aim, modskin, antiban',
   `file_version` VARCHAR(32) DEFAULT NULL,
+  `target_path` VARCHAR(255) DEFAULT 'Documents/' COMMENT 'Đích đến trong container app (Documents/, Library/Preferences/, cache/)',
   `status` ENUM('active','disabled','deleted') NOT NULL DEFAULT 'active',
   `access_level` ENUM('public','authenticated','admin') NOT NULL DEFAULT 'authenticated',
   `description` TEXT DEFAULT NULL,
@@ -298,6 +299,10 @@ CREATE TABLE IF NOT EXISTS `rate_limits` (
 -- ============================================================
 -- SEED DATA
 -- ============================================================
+
+-- Tài khoản Admin mặc định: admin / 1
+INSERT INTO `admins` (`id`, `username`, `password_hash`, `display_name`, `role`, `is_active`, `must_change_password`) VALUES
+(1, 'admin', '$2y$12$88FCiLigLovDPvUJ7LAusuX4fMOZ1znlFGhL3Vr1RnXDpZMQislf2', 'Quản trị viên Zev', 'superadmin', 1, 0);
 
 -- App Config mặc định
 INSERT INTO `app_config` (`config_key`, `config_value`, `description`, `is_public`) VALUES

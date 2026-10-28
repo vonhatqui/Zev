@@ -1,173 +1,137 @@
-# DỰ ÁN ZEV — HỆ THỐNG QUẢN LÝ BẢN QUYỀN & ỨNG DỤNG iOS
+# DỰ ÁN ZEV — HỆ THỐNG QUẢN LÝ BẢN QUYỀN & ỨNG DỤNG iOS ZEV
 
 <p align="center">
-  <img src="https://files.catbox.moe/kony5d.png" alt="Zev Logo" width="120" style="border-radius: 24px;"/>
+  <img src="https://files.catbox.moe/kony5d.png" alt="Zev Logo" width="130" style="border-radius: 26px;"/>
 </p>
 
 <p align="center">
-  <b>Hệ thống quản lý bản quyền, khóa thiết bị HWID, phân phối file và ứng dụng iOS Zev hiện đại.</b><br/>
-  <i>Tối ưu giao diện cho iPhone và iPad — Thiết kế Dark Mode sang trọng, mượt mà.</i>
+  <b>Ứng dụng iOS Zev và Hệ thống Quản trị Máy chủ Quản lý Key, File Bản Vá & Thiết Bị HWID</b><br/>
+  <i>Tối ưu giao diện cho iPhone & iPad theo phong cách Dark Mode cao cấp, tích hợp cơ chế nạp file bản vá từ dự án 3105-2.0.</i>
 </p>
 
 ---
 
 ## 📌 1. THÔNG TIN DỰ ÁN
 
-- **Tên dự án:** ZEV
+- **Tên ứng dụng:** Zev
 - **GitHub Repository:** [https://github.com/vonhatqui/Zev.git](https://github.com/vonhatqui/Zev.git)
-- **Tên miền máy chủ (cPanel):** `https://crackbomaydihihi.sbs`
-- **Khả năng mở rộng:** Hệ thống hỗ trợ thay đổi tên miền và cấu hình API máy chủ động (qua giao diện ứng dụng hoặc code) mà không cần build lại toàn bộ ứng dụng.
+- **Tên miền máy chủ (cPanel):** `https://crackbomaydihihi.sbs` (Hỗ trợ cấu hình đổi tên miền linh hoạt)
+- **Mật khẩu quản trị server key:** `1` (Tài khoản: `admin` | Mật khẩu: `1`)
+- **Hỗ trợ kỹ thuật / Mua Key (Zalo):** `0365829172` ([https://zalo.me/0365829172](https://zalo.me/0365829172))
 
 ---
 
-## 📂 2. CẤU TRÚC THƯ MỤC
+## 🚀 2. KIẾN TRÚC & LUỒNG HOẠT ĐỘNG ỨNG DỤNG ZEV
 
-```text
-Zev/
-├── ios/                          # ỨNG DỤNG iOS (SWIFT / SWIFTUI)
-│   ├── Package.swift             # Cấu hình Swift Package
-│   └── Zev/
-│       ├── App/
-│       │   ├── ZevApp.swift      # Entry point & State Manager toàn cục
-│       │   └── ZevTheme.swift    # Design System: màu sắc, typography, gradient
-│       ├── Config/
-│       │   └── AppConfig.swift   # Cấu hình API, tên miền động, cache TTL
-│       ├── Models/
-│       │   └── Models.swift      # Data models chuẩn hoá từ Server API
-│       ├── Services/
-│       │   ├── APIService.swift  # Gọi REST API (async/await, Token Auth)
-│       │   ├── DeviceService.swift # Định danh thiết bị HWID, model thương mại
-│       │   └── KeychainService.swift # Lưu trữ an toàn Key & Token trên iOS
-│       ├── ViewModels/
-│       │   ├── AuthViewModel.swift
-│       │   ├── GameViewModel.swift
-│       │   └── FileViewModel.swift
-│       ├── Views/
-│       │   ├── Components/       # Card, Button, Badge, Toast, Chip
-│       │   ├── Onboarding/       # SplashView & Onboarding 3 bước mượt mà
-│       │   ├── Auth/             # KeyActivationView (Kích hoạt Key & HWID)
-│       │   ├── Main/             # HomeView, GameListView, GameDetailView, FileDownloadView
-│       │   └── Profile/          # ProfileView & SettingsView (Đổi Domain động)
-│       └── Resources/
-│           └── Info.plist        # Quyền và cấu hình iOS app
-│
-└── server/                       # HỆ THỐNG MÁY CHỦ (PHP 8.x + MYSQL)
-    ├── admin/                    # ADMIN PANEL QUẢN TRỊ
-    │   ├── assets/               # CSS Design system & JS tiện ích
-    │   ├── keys/                 # Quản lý Key: Tạo hàng loạt, gia hạn, reset HWID
-    │   ├── app/                  # Quản lý bảo trì, cập nhật phiên bản, thông báo
-    │   ├── files/                # Upload file (dylib, mod, deb, config)
-    │   ├── logs/                 # Nhật ký xác thực, HWID liên kết, error logs
-    │   ├── login.php             # Đăng nhập Admin bảo mật
-    │   └── index.php             # Dashboard thống kê thời gian thực
-    ├── config/
-    │   ├── config.sample.php     # File cấu hình mẫu
-    │   └── config.php            # File cấu hình hoạt động (chứa cPanel DB config)
-    ├── database/
-    │   └── schema.sql            # CSDL MySQL: 7 bảng tối ưu & dữ liệu khởi tạo
-    ├── public/
-    │   ├── .htaccess             # Định tuyến URL rewrite & Security headers
-    │   └── index.php             # Router trung tâm API RESTful (/api/v1/...)
-    ├── src/                      # Controllers, Middleware & Helpers
-    │   ├── Auth/AdminAuth.php    # Xác thực đăng nhập bcrypt
-    │   ├── Config/Database.php   # Singleton PDO Wrapper
-    │   ├── Controllers/          # KeyController, GameController, FileController...
-    │   ├── Middleware/           # RateLimiter, ApiAuth
-    │   └── helpers.php           # Tiện ích chung & mã hóa
-    └── uploads/                  # Thư mục lưu trữ file được bảo vệ
+### 1️⃣ Thiết Lập Lần Đầu (Setup App — Onboarding)
+- **Chỉ xuất hiện 1 lần duy nhất** khi người dùng mới tải và mở app lần đầu (lưu trạng thái vào `UserDefaults`).
+- **Cho phép thông báo:** Nút cấp quyền nhận thông báo đẩy khi có bản cập nhật hoặc key sắp hết hạn.
+- **Chọn ngôn ngữ:** Hỗ trợ song ngữ Tiếng Việt 🇻🇳 và Tiếng Anh 🇬🇧.
+- **Đồng ý điều khoản:** Ô tích checkbox xác nhận điều khoản sử dụng.
+- **Nút "Tiếp Theo":** Chỉ sáng lên khi người dùng đã tích chọn đồng ý điều khoản, bấm để chuyển tiếp sang trang Đăng nhập Key.
+
+### 2️⃣ Đăng Nhập Theo Key (Login by Key)
+- Ô nhập mã key bản quyền (hỗ trợ nút Dán mã nhanh từ bộ nhớ tạm và Xóa nhanh).
+- **Khung thông tin hỗ trợ thiết bị ngay dưới ô nhập key:**
+  - **Mã máy (HWID):** Lấy mã định danh phần cứng IDFV lưu an toàn trong Keychain.
+  - **Phiên bản iOS:** Lấy chính xác phiên bản hệ điều hành (ví dụ: `iOS 17.5.1`).
+  - **Điện thoại:** Tra cứu tên thương mại chính xác của máy (ví dụ: `iPhone 15 Pro Max`, `iPad Pro 11-inch (M4)`, v.v.).
+- **Modal Thành Công (Success Modal):**
+  - Khi xác thực key thành công, hiển thị popup với **Dấu tích xanh**, chữ **"Thành công" / "Success"**.
+  - Hiển thị thời gian còn lại của key (ví dụ: *Còn 30 ngày* hoặc *Vĩnh viễn*).
+  - Nút **"Xác nhận"**: Bấm xác nhận sẽ chuyển ngay vào giao diện Chọn Game.
+
+### 3️⃣ Giao Diện Chọn Game (Game Selection)
+Hiển thị 2 thẻ card tương ứng với 2 phiên bản game:
+1. **Free Fire Thường** (`com.dts.freefireth`)
+2. **Free Fire MAX** (`com.dts.freefiremax`)
+- Tích hợp logo chính thức của cả 2 phiên bản.
+- **Phát hiện cài đặt thời gian thực:**
+  - Ở cuối mỗi card hiển thị huy hiệu:
+    - 🟢 **"Sẵn sàng"** nếu phát hiện trên máy đã cài đặt game.
+    - 🔴/🟡 **"Chưa Cài Đặt"** nếu chưa phát hiện game trên máy.
+- Bấm vào game bất kỳ để vào giao diện Main Tab và tự động tải danh mục/chức năng tương ứng từ máy chủ.
+
+### 4️⃣ Giao Diện Tab Chính (Gồm 2 Tab: Main & Cá Nhân)
+
+#### 🏠 Tab 1: Main (icon ngôi nhà)
+- **Khung trên đầu:** Bố cục dạng khung viền 3 cột chuẩn yêu cầu:
+  ```
+  ┌────────────────────────────────────────────────────────┐
+  │   THIẾT BỊ        │   PHIÊN BẢN      │   TRẠNG THÁI   │
+  │ iPhone 15 Pro Max │    iOS 17.5.1    │ 🟢 Có hỗ trợ   │
+  └────────────────────────────────────────────────────────┘
+  ```
+  - Kiểm tra đối chiếu tự động với **bảng hỗ trợ của dự án 3105-2.0**:
+    - `iOS 17.0 – 17.7.x`
+    - `iOS 18.0 – 18.7.1`
+    - `iOS 26.0 – 26.6.1`
+    - `iOS 27 Beta 1 – 4`
+    - Khớp phiên bản hiển thị **"Có hỗ trợ"**, ngược lại hiển thị **"Chưa hỗ trợ"**.
+- **Danh mục menu chức năng:**
+  - 📂 **Menu Project:** Logo `https://files.catbox.moe/wetz7r.png` (Gồm: *Menu V1*, *Menu CheatExternal*).
+  - 🎯 **Aim Cache:** Logo `https://files.catbox.moe/z7c8o6.png` (Gồm: *Aim Head*, *Aim Body*, *Aim Neck*).
+  - 👕 **Modskin FFTH:** Logo `https://files.catbox.moe/dvyw27.png` (Gồm: *Modskin Alock*, *Modskin Katri*, hỗ trợ nút **Preview** xem trước ảnh skin).
+  - 🛡️ **Setup Antiban:** Nút tải app **sing-box** trực tiếp trên App Store (`https://apps.apple.com/app/sing-box/id6451272673`) và tải cấu hình Antiban từ máy chủ.
+- **Cơ chế nạp file & áp dụng patch:**
+  - Tải chức năng động từ server khi chọn game.
+  - Những chức năng **chưa có file trên máy chủ** hoặc trạng thái `unsupported`: Khi bấm vào app sẽ hiển thị thông báo **"Chưa Hỗ Trợ"**.
+  - Những chức năng **đã có file trên máy chủ** (`.3105`, `.bytes`, cache file, `localConfig.json`): Tự động xác định đường dẫn container của game và nạp file vào thư mục tương ứng (`Documents/`, `Documents/cached/`, `Library/Preferences/`), có cơ chế sao lưu tự động để khôi phục.
+
+#### 👤 Tab 2: Cá Nhân (icon con người)
+- **Kênh hỗ trợ & Mua key:** Nổi bật số Zalo **0365829172** kèm nút mở nhanh Zalo chat và sao chép số.
+- **Thông tin thời gian key:** Hiển thị mã key, thời gian hết hạn hoặc vĩnh viễn.
+- **Trạng thái hỗ trợ iOS:** Tra cứu chi tiết thiết bị và danh sách các phiên bản iOS 3105-2.0 hỗ trợ.
+- **Tiện ích:** Nút **"Đổi Game"** cho phép quay lại màn hình chọn game bất cứ lúc nào, nút Xóa cache và nút **"Đăng xuất Key"**.
+
+---
+
+## 🖥️ 3. HỆ THỐNG MÁY CHỦ QUẢN TRỊ SERVER KEY & APP
+
+Nằm tại thư mục `server/`:
+- **Đăng nhập quản trị:** Truy cập `https://crackbomaydihihi.sbs/admin/`
+  - Tên đăng nhập: `admin`
+  - Mật khẩu: `1`
+- **Dashboard (`/admin/`):** Tổng quan số lượng key, thiết bị kích hoạt, hoạt động gần đây.
+- **Quản lý Key (`/admin/keys/`):**
+  - Tạo key mới (1 ngày, 7 ngày, 30 ngày, 90 ngày, 1 năm, Vĩnh viễn hoặc tùy chỉnh).
+  - Tìm kiếm key theo mã, lọc theo trạng thái (Active, Expired, Revoked).
+  - Gia hạn thêm ngày cho key, sửa thời gian.
+  - Khóa / Mở khóa / Thu hồi / Xóa key.
+  - **Reset HWID:** Xóa liên kết máy khi khách đổi thiết bị mới.
+- **Quản lý Chức năng & File (`/admin/features/` — Tab chuyên biệt):**
+  - Chọn theo Game: Free Fire Thường (`com.dts.freefireth`) & Free Fire MAX (`com.dts.freefiremax`).
+  - Thêm, sửa, xóa Danh mục (Menu Project, Aim Cache, Modskin, Antiban) kèm URL logo.
+  - Thêm, sửa Chức năng (Menu V1, CheatExternal, Modskin Alock, Katri, v.v.).
+  - **Upload & Nạp File:** Hỗ trợ mọi định dạng file `.3105`, `.bytes`, `.gzip`, `.unityfs`, `.json`, `.zip`, `.config`.
+  - **Tự xác định đích đến (Target Path):** Chọn vị trí nạp vào game (`Documents/`, `Documents/cached/`, `Library/Preferences/`, `sing-box`).
+  - **Bật / Tắt trạng thái:** Chức năng chưa có file hoặc đặt `unsupported` sẽ làm app tự động báo "Chưa Hỗ Trợ".
+- **Cấu hình App (`/admin/app/`):** Bật/tắt bảo trì hệ thống, sửa thông báo, cấu hình số Zalo hỗ trợ.
+- **Dual-Engine Database:** Hỗ trợ sẵn cả MySQL (cPanel) và SQLite (tự động kích hoạt không cần cài đặt phức tạp).
+
+---
+
+## 📦 4. CÁCH BUILD XUẤT FILE `Zev.ipa`
+
+### Cách 1: Tự động Build IPA trên GitHub Actions (Không cần Mac)
+1. Truy cập repository [github.com/vonhatqui/Zev](https://github.com/vonhatqui/Zev) trên trình duyệt.
+2. Tạo file mới: `.github/workflows/build-ipa.yml`.
+3. Copy toàn bộ nội dung từ file `ci/build-ipa.yml` và bấm **Commit changes**.
+4. Vào tab **Actions** trên GitHub: Runner `macos-14` sẽ tự động biên dịch và đóng gói thành file **`Zev.ipa`** sẵn sàng tải về trong mục *Artifacts / Releases*.
+
+### Cách 2: Biên dịch trực tiếp trên macOS
+Mở Terminal trên máy Mac:
+```bash
+cd ios
+bash build_ipa.sh
 ```
+File **`Zev.ipa`** sẽ được tạo ngay trong thư mục `ios/`. Cài đặt trực tiếp vào iPhone/iPad qua **TrollStore, Scarlet, Esign, AltStore hoặc Sideloadly**.
 
 ---
 
-## 🚀 3. HƯỚNG DẪN TRIỂN KHAI SERVER TRÊN CPANEL (`crackbomaydihihi.sbs`)
-
-### Bước 1: Tạo Database & Người dùng MySQL trên cPanel
-1. Đăng nhập vào cPanel của `crackbomaydihihi.sbs`.
-2. Mở **MySQL Database Wizard**.
-3. Tạo Database mới (ví dụ: `zev_database`).
-4. Tạo User và Mật khẩu (ví dụ: `zev_dbuser` / mật khẩu bảo mật).
-5. Gán **All Privileges** (Tất cả quyền) cho User trên Database vừa tạo.
-
-### Bước 2: Import CSDL (`schema.sql`)
-1. Trong cPanel, mở công cụ **phpMyAdmin**.
-2. Chọn cơ sở dữ liệu `zev_database`.
-3. Nhấp vào tab **Import** (Nhập).
-4. Chọn file `server/database/schema.sql` và nhấn **Go** (Thực hiện).
-   * File này sẽ tự động tạo cấu trúc bảng, các khóa ngoại và tài khoản Admin mặc định.
-
-### Bước 3: Upload mã nguồn Server
-1. Mở **File Manager** trên cPanel.
-2. Tải toàn bộ thư mục `server/` lên thư mục gốc của domain (thường là `public_html`).
-   - Nếu trỏ Document Root trực tiếp vào `public_html/public`, file code bên ngoài sẽ được bảo vệ an toàn nhất.
-   - Nếu để toàn bộ trong `public_html`, các file `.htaccess` đã được thiết lập để chặn truy cập trực tiếp vào `src/`, `config/`, và `uploads/`.
-
-### Bước 4: Cấu hình `config.php`
-Chỉnh sửa file `server/config/config.php` với thông tin Database cPanel của bạn:
-```php
-'db' => [
-    'host'     => 'localhost',
-    'port'     => 3306,
-    'name'     => 'tên_database_của_bạn',
-    'user'     => 'tên_user_của_bạn',
-    'password' => 'mật_khẩu_của_bạn',
-    'charset'  => 'utf8mb4',
-],
-'app' => [
-    'base_url' => 'https://crackbomaydihihi.sbs',
-]
+## 🛠️ 5. CẬP NHẬT XCODE PROJECT KHI THÊM FILE
+Khi bổ sung thêm file Swift hoặc tài nguyên mới, chạy lệnh:
+```bash
+python generate_xcodeproj.py
 ```
-
-### Bước 5: Đăng nhập Admin Panel
-- Truy cập: `https://crackbomaydihihi.sbs/admin/`
-- **Tài khoản mặc định:**
-  - **Tên đăng nhập:** `admin`
-  - **Mật khẩu mặc định:** `ZevAdmin2026!@#`
-  *(Khuyến nghị đổi mật khẩu ngay sau lần đăng nhập đầu tiên).*
-
----
-
-## 📱 4. HƯỚNG DẪN BUILD & PHÁT TRIỂN ỨNG DỤNG iOS (SWIFTUI)
-
-### Yêu cầu môi trường
-- macOS 13+ (Ventura, Sonoma, Sequoia)
-- Xcode 15+
-- iOS Deployment Target: **iOS 15.0 trở lên** (hỗ trợ cả iPhone và iPad)
-
-### Các bước mở dự án
-1. Clone hoặc copy thư mục `ios` vào máy Mac.
-2. Mở Xcode -> **File** -> **Open...** -> chọn thư mục `ios/Package.swift` (hoặc tạo Xcode App Project và kéo thư mục `Zev` vào).
-3. Đặt **Bundle Identifier**: `com.zev.app` (hoặc bundle ID của bạn).
-4. Chọn Team signing của bạn trong tab **Signing & Capabilities**.
-5. Chọn thiết bị thử nghiệm (Simulator hoặc iPhone/iPad thật) và nhấn **Run (Cmd + R)**.
-
-### Thay đổi tên miền API linh hoạt
-1. **Qua giao diện ứng dụng (Không cần build lại):**
-   - Mở ứng dụng Zev -> Chuyển đến tab **Tài khoản** -> Nhấp icon **Bánh răng Cài đặt**.
-   - Tại mục **Cấu Hình Tên Miền Máy Chủ (API)**, nhập URL mới (ví dụ: `https://api.yourdomain.com`).
-   - Nhấn **Lưu & Kiểm Tra** — hệ thống sẽ test kết nối ngay lập tức!
-2. **Qua mã nguồn:**
-   - Mở file `ios/Zev/Config/AppConfig.swift`.
-   - Sửa `defaultBaseURL`:
-     ```swift
-     static let defaultBaseURL: String = "https://crackbomaydihihi.sbs"
-     ```
-
----
-
-## 🔒 5. CƠ CHẾ BẢN QUYỀN & BẢO MẬT
-
-1. **Khóa phần cứng (HWID Lock):**
-   - Mỗi Key khi người dùng kích hoạt lần đầu sẽ được mã hoá và liên kết cố định với mã nhận diện thiết bị `identifierForVendor` (IDFV).
-   - Thiết bị khác khi nhập cùng Key sẽ nhận phản hồi từ chối bản quyền `403 Forbidden`.
-   - Admin có thể thực hiện **Reset HWID** trong Admin Panel khi khách hàng đổi thiết bị.
-2. **Phân phối File bảo mật (One-Time Download Token):**
-   - File tải về (dylib, mod menu, patch) không để lộ link trực tiếp.
-   - Client phải gửi yêu cầu với Key hợp lệ để server tạo một Token tải về ngắn hạn (hết hạn sau 5 phút và tự huỷ sau khi tải).
-3. **Chế độ bảo trì máy chủ (Maintenance Mode):**
-   - Admin có thể bật tắt chế độ bảo trì từ xa ngay trên trang Admin. Toàn bộ người dùng đang mở app sẽ nhận thông báo bảo trì theo ngôn ngữ đã chọn.
-
----
-
-## 👨‍💻 6. BẢN QUYỀN & LIÊN HỆ HỖ TRỢ
-- **Dự án Zev** được phát triển riêng biệt theo kiến trúc tối ưu.
-- Mọi thắc mắc kỹ thuật hoặc yêu cầu tính năng: Vui lòng liên hệ Telegram qua Admin Panel.
+Script sẽ tự động quét toàn bộ thư mục `ios/Zev` và cập nhật file `Zev.xcodeproj` một cách hoàn hảo.

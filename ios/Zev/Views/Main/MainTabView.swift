@@ -1,13 +1,13 @@
 import SwiftUI
 
 // MARK: - MainTabView
-// Thanh điều hướng chính của ứng dụng Zev
+// Gồm 2 tab chính: Main (icon ngôi nhà) và Cá nhân (icon con người)
 
 struct MainTabView: View {
     @State private var selectedTab: Int = 0
     
     init() {
-        // Tuỳ biến giao diện TabBar UIKit
+        // Tuỳ biến giao diện TabBar UIKit chuẩn Dark Mode
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(Color(hex: "#111218"))
@@ -26,33 +26,21 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
+            // Tab 1: Main (icon ngôi nhà)
+            GameMainView()
                 .tabItem {
                     Image(systemName: selectedTab == 0 ? "house.fill" : "house")
-                    Text("Trang chủ")
+                    Text("Main")
                 }
                 .tag(0)
             
-            GameListView()
-                .tabItem {
-                    Image(systemName: selectedTab == 1 ? "gamecontroller.fill" : "gamecontroller")
-                    Text("Game & Mod")
-                }
-                .tag(1)
-            
-            FileDownloadView()
-                .tabItem {
-                    Image(systemName: selectedTab == 2 ? "arrow.down.circle.fill" : "arrow.down.circle")
-                    Text("Tải File")
-                }
-                .tag(2)
-            
+            // Tab 2: Cá nhân (icon con người)
             ProfileView()
                 .tabItem {
-                    Image(systemName: selectedTab == 3 ? "person.crop.circle.fill" : "person.crop.circle")
-                    Text("Tài khoản")
+                    Image(systemName: selectedTab == 1 ? "person.fill" : "person")
+                    Text("Cá nhân")
                 }
-                .tag(3)
+                .tag(1)
         }
         .accentColor(ZevTheme.Colors.primary)
     }
