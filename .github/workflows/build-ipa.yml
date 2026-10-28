@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     name: Build & Package IPA
-    runs-on: macos-14
+    runs-on: macos-13
 
     steps:
       - name: Checkout Repository
@@ -25,6 +25,10 @@ jobs:
             sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
           elif [ -d "/Applications/Xcode_15.4.app" ]; then
             sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_15.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_15.0.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.0.1.app/Contents/Developer
           fi
           xcodebuild -version
 
@@ -52,6 +56,12 @@ jobs:
           echo "Found app at: $APP_PATH"
           
           mkdir -p Payload
+          # Nhúng tài nguyên ảnh vào app bundle để load tức thì không cần mạng
+          if [ -d "Zev/Resources/Images" ]; then
+            cp -r Zev/Resources/Images/* "$APP_PATH/" 2>/dev/null || true
+            mkdir -p "$APP_PATH/Images"
+            cp -r Zev/Resources/Images/* "$APP_PATH/Images/" 2>/dev/null || true
+          fi
           cp -r "$APP_PATH" Payload/
           zip -r ../Zev.ipa Payload
           cd ..
@@ -68,14 +78,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          name: Zev iOS Release
-          tag_name: v1.0.0
+          name: Zev iOS Release ${{ github.ref_name }}
           files: Zev.ipa
           draft: false
           prerelease: false
           body: |
             ## 🚀 Zev iOS Application (IPA)
-            - **Phiên bản:** 1.0.0
+            - **Phiên bản:** ${{ github.ref_name }}
+            - **Bundle Identifier:** com.apple.mobile.MobileHouseArrest
             - **Hỗ trợ:** iOS 15.0+ (iPhone & iPad)
             - **Cài đặt:** TrollStore, Scarlet, Esign, AltStore, Sideloadly.
         env:

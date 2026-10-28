@@ -78,14 +78,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          name: Zev iOS Release
-          tag_name: v1.0.0
+          name: Zev iOS Release ${{ github.ref_name }}
           files: Zev.ipa
           draft: false
           prerelease: false
           body: |
             ## 🚀 Zev iOS Application (IPA)
-            - **Phiên bản:** 1.0.0
+            - **Phiên bản:** ${{ github.ref_name }}
+            - **Bundle Identifier:** com.apple.mobile.MobileHouseArrest
             - **Hỗ trợ:** iOS 15.0+ (iPhone & iPad)
             - **Cài đặt:** TrollStore, Scarlet, Esign, AltStore, Sideloadly.
         env:
