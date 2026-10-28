@@ -1,0 +1,420 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F0FFEB978244EE221C3251BC /* ZevApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE943F8E783E5CE196D0286B /* ZevApp.swift */; };
+		D56630E2CA9463566D85D389 /* ZevTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2536D51F570CD4094CD44877 /* ZevTheme.swift */; };
+		AAADA57D20214A1F9B3FA23A /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EDC35C5C652C3E13790137 /* AppConfig.swift */; };
+		8E72557B7F23539A71CFF051 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22252D31B1685E903FBE49BA /* Models.swift */; };
+		8027708EC64C19408F951621 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B7FA8492057046F5A8494F /* APIService.swift */; };
+		EB8AFB086945081DE8589900 /* DeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505D7D8A4681A7E271165D1C /* DeviceService.swift */; };
+		A88D60D8890E8604315FAEF1 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C2ABAB703A3EF83F8C96F32 /* KeychainService.swift */; };
+		30A51F01142548FF7491803C /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63BA7174B04EFA5410A30002 /* AuthViewModel.swift */; };
+		BAF67524788514BD31781C94 /* FileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF71378B2C549FF6C4D8AA93 /* FileViewModel.swift */; };
+		936CE0260D2CE7E2C55F09FB /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C595D42629AA39CDC12C4D /* GameViewModel.swift */; };
+		06B52D715A4AAC5E34372C3D /* KeyActivationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0135BEA674ED22F1F37C581A /* KeyActivationView.swift */; };
+		39F8F9C2614ECCEDFEF79716 /* ZevComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B51AD2C17FC6A43D747D6B /* ZevComponents.swift */; };
+		3AFAF5C02A8070FED646C80E /* FileDownloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 056CCE6BADF555615C890FB1 /* FileDownloadView.swift */; };
+		C6EB786F2A2505ADB6FBF943 /* GameDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EDEF197DCED2A5BE8857538 /* GameDetailView.swift */; };
+		90B5FFEB8F2AEE4240055E8E /* GameListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB2E906C9443F4471FA2A22 /* GameListView.swift */; };
+		40E36783C2403AEE9A7919B2 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20493F6255A28194A5C24796 /* HomeView.swift */; };
+		F1BA89F9A53B06D75C94CB96 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727762989D941B155B595AA4 /* MainTabView.swift */; };
+		32F0369F655B21F8E88DFB29 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C7703A1995DAA33CE17899 /* OnboardingView.swift */; };
+		DC78A3F3F715BC91FFBEAC58 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7399BCA8DB3BC30684B123A1 /* SplashView.swift */; };
+		66AB32AE28DD410EE42DFC37 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662F2555E34B3C26B5F8A2B6 /* ProfileView.swift */; };
+		F0FDDD96BA90E9E0B883356F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 485A1A7F7552EEDC7D02585E /* SettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B8058246BE60EB6BA2E0127C /* Zev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Zev.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FE943F8E783E5CE196D0286B /* ZevApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ZevApp.swift"; sourceTree = "<group>"; };
+		2536D51F570CD4094CD44877 /* ZevTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ZevTheme.swift"; sourceTree = "<group>"; };
+		49EDC35C5C652C3E13790137 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppConfig.swift"; sourceTree = "<group>"; };
+		22252D31B1685E903FBE49BA /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
+		26A8DA9A483620481D42BCC6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
+		79B7FA8492057046F5A8494F /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService.swift"; sourceTree = "<group>"; };
+		505D7D8A4681A7E271165D1C /* DeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeviceService.swift"; sourceTree = "<group>"; };
+		5C2ABAB703A3EF83F8C96F32 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeychainService.swift"; sourceTree = "<group>"; };
+		63BA7174B04EFA5410A30002 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthViewModel.swift"; sourceTree = "<group>"; };
+		CF71378B2C549FF6C4D8AA93 /* FileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileViewModel.swift"; sourceTree = "<group>"; };
+		15C595D42629AA39CDC12C4D /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameViewModel.swift"; sourceTree = "<group>"; };
+		0135BEA674ED22F1F37C581A /* KeyActivationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyActivationView.swift"; sourceTree = "<group>"; };
+		B4B51AD2C17FC6A43D747D6B /* ZevComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ZevComponents.swift"; sourceTree = "<group>"; };
+		056CCE6BADF555615C890FB1 /* FileDownloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileDownloadView.swift"; sourceTree = "<group>"; };
+		8EDEF197DCED2A5BE8857538 /* GameDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameDetailView.swift"; sourceTree = "<group>"; };
+		9CB2E906C9443F4471FA2A22 /* GameListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameListView.swift"; sourceTree = "<group>"; };
+		20493F6255A28194A5C24796 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeView.swift"; sourceTree = "<group>"; };
+		727762989D941B155B595AA4 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainTabView.swift"; sourceTree = "<group>"; };
+		15C7703A1995DAA33CE17899 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingView.swift"; sourceTree = "<group>"; };
+		7399BCA8DB3BC30684B123A1 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SplashView.swift"; sourceTree = "<group>"; };
+		662F2555E34B3C26B5F8A2B6 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileView.swift"; sourceTree = "<group>"; };
+		485A1A7F7552EEDC7D02585E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsView.swift"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B18E04A3A1471994FB84991B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C277C6AAE13CD0BB0D001919 = {
+			isa = PBXGroup;
+			children = (
+				E9458EA1E7F8377EA2295757 /* Zev */,
+				BDC2F3746F95B56168D3849E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BDC2F3746F95B56168D3849E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B8058246BE60EB6BA2E0127C /* Zev.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E9458EA1E7F8377EA2295757 /* Zev */ = {
+			isa = PBXGroup;
+			children = (
+				200DF0D2B03A28A082772835 /* App */,
+				7D1D2FCBD23F3E3A32509398 /* Config */,
+				E74C4842E34193B48C4BB865 /* Models */,
+				35310B5F7B58757F6BE08114 /* Resources */,
+				8BAA9ED26F64CAEA84168990 /* Services */,
+				B182D25A581AF8261F8A861E /* ViewModels */,
+				575E908655668B293FC62796 /* Views */,
+			);
+			path = Zev;
+			sourceTree = "<group>";
+		};
+		200DF0D2B03A28A082772835 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				FE943F8E783E5CE196D0286B /* ZevApp.swift */,
+				2536D51F570CD4094CD44877 /* ZevTheme.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7D1D2FCBD23F3E3A32509398 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				49EDC35C5C652C3E13790137 /* AppConfig.swift */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		E74C4842E34193B48C4BB865 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				22252D31B1685E903FBE49BA /* Models.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		35310B5F7B58757F6BE08114 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				26A8DA9A483620481D42BCC6 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		8BAA9ED26F64CAEA84168990 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				79B7FA8492057046F5A8494F /* APIService.swift */,
+				505D7D8A4681A7E271165D1C /* DeviceService.swift */,
+				5C2ABAB703A3EF83F8C96F32 /* KeychainService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B182D25A581AF8261F8A861E /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				63BA7174B04EFA5410A30002 /* AuthViewModel.swift */,
+				CF71378B2C549FF6C4D8AA93 /* FileViewModel.swift */,
+				15C595D42629AA39CDC12C4D /* GameViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		575E908655668B293FC62796 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				35D45235068F3F32D4528982 /* Auth */,
+				ECA2435DAA490F199295CBDE /* Components */,
+				864919F7B98988816D1DA9CF /* Main */,
+				46075D436728788C789D28AC /* Onboarding */,
+				AD89BC8A486F688112C7E8C0 /* Profile */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		35D45235068F3F32D4528982 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				0135BEA674ED22F1F37C581A /* KeyActivationView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		ECA2435DAA490F199295CBDE /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				B4B51AD2C17FC6A43D747D6B /* ZevComponents.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		864919F7B98988816D1DA9CF /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				056CCE6BADF555615C890FB1 /* FileDownloadView.swift */,
+				8EDEF197DCED2A5BE8857538 /* GameDetailView.swift */,
+				9CB2E906C9443F4471FA2A22 /* GameListView.swift */,
+				20493F6255A28194A5C24796 /* HomeView.swift */,
+				727762989D941B155B595AA4 /* MainTabView.swift */,
+			);
+			path = Main;
+			sourceTree = "<group>";
+		};
+		46075D436728788C789D28AC /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				15C7703A1995DAA33CE17899 /* OnboardingView.swift */,
+				7399BCA8DB3BC30684B123A1 /* SplashView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		AD89BC8A486F688112C7E8C0 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				662F2555E34B3C26B5F8A2B6 /* ProfileView.swift */,
+				485A1A7F7552EEDC7D02585E /* SettingsView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C9A55C34440CEF249D0D205C /* Zev */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 576DFEA46154825E904D1078 /* Build configuration list for PBXNativeTarget "Zev" */;
+			buildPhases = (
+				757FF153F844446E1E04C93D /* Sources */,
+				B18E04A3A1471994FB84991B /* Frameworks */,
+				F4332712E9C23D40B3E72EE8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Zev;
+			productName = Zev;
+			productReference = B8058246BE60EB6BA2E0127C /* Zev.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		218F129756121D1FB1AA2701 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					C9A55C34440CEF249D0D205C = {
+						CreatedOnToolsVersion = 15.2;
+					};
+				};
+			};
+			buildConfigurationList = C39D08CAD8DE71F6E588BABF /* Build configuration list for PBXProject "Zev" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C277C6AAE13CD0BB0D001919;
+			productRefGroup = BDC2F3746F95B56168D3849E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C9A55C34440CEF249D0D205C /* Zev */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F4332712E9C23D40B3E72EE8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		757FF153F844446E1E04C93D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F0FFEB978244EE221C3251BC /* ZevApp.swift in Sources */,
+				D56630E2CA9463566D85D389 /* ZevTheme.swift in Sources */,
+				AAADA57D20214A1F9B3FA23A /* AppConfig.swift in Sources */,
+				8E72557B7F23539A71CFF051 /* Models.swift in Sources */,
+				8027708EC64C19408F951621 /* APIService.swift in Sources */,
+				EB8AFB086945081DE8589900 /* DeviceService.swift in Sources */,
+				A88D60D8890E8604315FAEF1 /* KeychainService.swift in Sources */,
+				30A51F01142548FF7491803C /* AuthViewModel.swift in Sources */,
+				BAF67524788514BD31781C94 /* FileViewModel.swift in Sources */,
+				936CE0260D2CE7E2C55F09FB /* GameViewModel.swift in Sources */,
+				06B52D715A4AAC5E34372C3D /* KeyActivationView.swift in Sources */,
+				39F8F9C2614ECCEDFEF79716 /* ZevComponents.swift in Sources */,
+				3AFAF5C02A8070FED646C80E /* FileDownloadView.swift in Sources */,
+				C6EB786F2A2505ADB6FBF943 /* GameDetailView.swift in Sources */,
+				90B5FFEB8F2AEE4240055E8E /* GameListView.swift in Sources */,
+				40E36783C2403AEE9A7919B2 /* HomeView.swift in Sources */,
+				F1BA89F9A53B06D75C94CB96 /* MainTabView.swift in Sources */,
+				32F0369F655B21F8E88DFB29 /* OnboardingView.swift in Sources */,
+				DC78A3F3F715BC91FFBEAC58 /* SplashView.swift in Sources */,
+				66AB32AE28DD410EE42DFC37 /* ProfileView.swift in Sources */,
+				F0FDDD96BA90E9E0B883356F /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		CEBF7BDACDA191C016A3D894 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		2D9902B0307FD62959CEFDB5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		3D8CC1E11ECF4F8A930479AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Zev/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zev.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F5F84B4E1D285DDACE9BA9C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Zev/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zev.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C39D08CAD8DE71F6E588BABF /* Build configuration list for PBXProject "Zev" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CEBF7BDACDA191C016A3D894 /* Debug */,
+				2D9902B0307FD62959CEFDB5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		576DFEA46154825E904D1078 /* Build configuration list for PBXNativeTarget "Zev" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3D8CC1E11ECF4F8A930479AB /* Debug */,
+				F5F84B4E1D285DDACE9BA9C3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 218F129756121D1FB1AA2701 /* Project object */;
+}
